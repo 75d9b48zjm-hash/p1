@@ -1,0 +1,36 @@
+{
+  "summary": "Ran 31 backend integration tests (30 passed, 1 failed) covering auth, multi-tenant isolation, transactions with pending→approved flow, admin review, edit/audit, filters, receipts, reports math, insights, CSV+PDF exports for 5 kinds, admin-creates-UMKM, categories, forgot/reset/change password. Ran Playwright UI smoke: login (both roles), MSME dashboard metrics + charts, transaction dialog (IDR thousand separator working '150.000'), transaction created (pending), transactions list page with all data-testids present and 114 rows, filters panel, reports page presets/tabs/exports, admin dashboard (7 businesses inc. test data), admin review page with approve/reject buttons, audit log page rendering entries. Role-based routing enforced (MSME visiting /admin -> /dashboard; admin visiting /dashboard -> /admin). One CRITICAL multi-tenant isolation gap found in GET /api/transactions.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "GET /api/transactions?business_id=<other>", "issue": "For non-admin users, the query-param business_id is silently ignored and the endpoint returns the caller's own transactions with HTTP 200 instead of 403. All other endpoints (/reports, /insights, /dashboard/business, /businesses/{id}, /categories) correctly return 403 via assert_business_access. This violates the strict multi-tenant contract stated in the spec ('...must all return 403').", "priority": "HIGH"}
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": ["/app/backend/tests/backend_test.py", "/app/test_reports/pytest/pytest_results.xml"],
+  "action_items": [
+    "In backend/server.py list_transactions(): when a non-admin passes ?business_id, call assert_business_access(user, business_id) instead of silently overwriting with user.business_id. Suggested fix: replace the else branch with `bid = business_id or user.get('business_id'); assert_business_access(user, bid); q['business_id'] = bid`.",
+    "Consider applying the same pattern to /api/audit-logs for consistency (currently also silently scopes to own business for non-admin)."
+  ],
+  "critical_code_review_comments": [
+    "server.py list_transactions leaks-no-data but silently masks cross-tenant probe attempts; should 403 explicitly to meet spec.",
+    "storage.py + receipts: signed-URL alternative pattern via ?auth_token= works but query-string tokens can leak via logs/referrer — acceptable for MVP.",
+    "CORS_ORIGINS='*' with allow_credentials=True is combined — Starlette will effectively drop credentials for wildcard origin; not blocking now but tighten before production.",
+    "seed_admin correctly updates existing admin password when env changes — good; no bcrypt.$ escape issues in .env.",
+    "Login endpoint uses per-IP+email brute-force lockout after 5 fails for 15 min (good). Note this can create false lockouts for tests running in parallel from same IP.",
+    "server.py is 768 lines — approaching the 700-line guideline; consider splitting transactions/reports/exports routers.",
+    "reports/insights correctly exclude pending & needs_correction (verified end-to-end)."
+  ],
+  "updated_files": ["/app/backend/tests/backend_test.py", "/app/test_reports/iteration_1.json"],
+  "success_rate": {"backend": "97% (30/31)", "frontend": "100% smoke (all critical data-testids resolved on correct routes /transaksi /laporan /insight /pengaturan)"},
+  "test_credentials": "admin@kasumkm.id/admin123 and 5 demo MSMEs .../demo123 — all working. Forgot-password returns dev_token, reset works, change-password works.",
+  "seed_data_creation": "Two TEST_ businesses/categories were auto-created by admin-create-UMKM and category-CRUD tests; cleaned up (soft-deleted businesses + hard-deleted categories) before finishing. Users prefixed TEST_reset_* remain (registered via /auth/register during forgot-password test); harmless.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Backend base URL: https://keuangan-mudah-2.preview.emergentagent.com. MSME routes are Bahasa: /dashboard, /transaksi, /laporan, /insight, /pengaturan (NOT /transactions or /reports). Admin routes: /admin, /admin/umkm, /admin/umkm/:id (btab-* tabs), /admin/transaksi (review queue), /admin/laporan, /admin/insight, /admin/kategori, /admin/audit, /admin/pengaturan. Demo buttons on Login only PREFILL the form — testing must also click login-submit-button. Report date pickers (report-start-date/report-end-date) render only after clicking preset-custom. After the isolation fix, re-run backend_test.py::TestIsolation to confirm 200→403.",
+  "rca of the issue": "TestIsolation.test_msme_cannot_read_other_business fails on /api/transactions only. In server.py list_transactions(), the code path is: `if user.role==admin: apply business_id filter if provided else no filter; else: q['business_id']=user.business_id` — meaning the incoming ?business_id query parameter is silently discarded for non-admin users. The MSME therefore gets HTTP 200 with their OWN data. No actual cross-tenant data leak occurs, BUT the spec explicitly requires 403 for this probe. Fix: `bid = body_business_id or user.business_id; assert_business_access(user, bid); q['business_id']=bid`. Reproduction: login as toko.maju@demo.id, GET /api/transactions?business_id=<kedai.nusantara business id> => expect 403, actual 200."
+}

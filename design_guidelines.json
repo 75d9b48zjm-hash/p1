@@ -1,0 +1,116 @@
+{
+  "project_name": "Modern Multi-Tenant Bookkeeping SaaS for Indonesian MSMEs (UMKM)",
+  "app_brand_name": "KasUMKM / BukuKita",
+  "theme": {
+    "default_mode": "light",
+    "background": "#F8FAFC",
+    "surface": "#FFFFFF",
+    "surface_secondary": "#F1F5F9",
+    "primary_accent": "#059669",
+    "primary_hover": "#047857",
+    "primary_light": "#ECFDF5",
+    "text_primary": "#0F172A",
+    "text_secondary": "#475569",
+    "text_muted": "#94A3B8",
+    "income_green": "#10B981",
+    "income_bg": "#ECFDF5",
+    "expense_red": "#EF4444",
+    "expense_bg": "#FEF2F2",
+    "warning_amber": "#F59E0B",
+    "warning_bg": "#FFFBEB",
+    "border_subtle": "#E2E8F0",
+    "border_primary_soft": "#A7F3D0"
+  },
+  "typography": {
+    "font_family_heading": "Plus Jakarta Sans, sans-serif",
+    "font_family_body": "Plus Jakarta Sans, Inter, sans-serif",
+    "font_family_mono": "JetBrains Mono, monospace",
+    "h1": "text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-slate-900",
+    "h2": "text-2xl sm:text-3xl font-semibold tracking-tight text-slate-900",
+    "h3": "text-xl sm:text-2xl font-semibold text-slate-800",
+    "h4": "text-lg font-medium text-slate-800",
+    "body": "text-base leading-relaxed text-slate-600",
+    "body_sm": "text-sm text-slate-500",
+    "currency_display": "font-mono font-bold tracking-tight text-slate-900",
+    "jargon_mapping_rules": {
+      "Revenue/Income": "Uang Masuk",
+      "Expense/Cost": "Uang Keluar",
+      "Net Profit": "Laba / Keuntungan",
+      "Balance": "Saldo",
+      "Transaction History": "Catatan Transaksi",
+      "Pending Review": "Perlu Tinjauan",
+      "Approved": "Disetujui",
+      "Needs Correction": "Perlu Perbaikan",
+      "Business Insight": "Analisis Usaha"
+    }
+  },
+  "layout_and_navigation": {
+    "desktop": {
+      "type": "Sidebar Navigation + Top Bar Header",
+      "sidebar_width": "w-64",
+      "background": "bg-slate-900 text-white or bg-white border-r border-slate-200",
+      "collapsible": true
+    },
+    "mobile": {
+      "type": "Bottom Navigation Bar + Compact Header",
+      "bottom_nav_classes": "fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 py-2 flex justify-around items-center md:hidden shadow-lg",
+      "padding_bottom_offset": "pb-20 md:pb-8"
+    },
+    "spacing_scale": {
+      "card_padding": "p-5 sm:p-6 lg:p-8",
+      "grid_gap": "gap-4 sm:gap-6 lg:gap-8",
+      "section_spacing": "space-y-6 sm:space-y-8"
+    }
+  },
+  "visual_enhancers": {
+    "card_style": "bg-white rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md transition-all duration-200",
+    "metric_card_accent": "relative overflow-hidden bg-white rounded-2xl p-6 border border-slate-100 shadow-sm hover:border-emerald-200 transition-all",
+    "badge_income": "inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60",
+    "badge_expense": "inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200/60",
+    "badge_warning": "inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200/60",
+    "glass_header": "sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-200/80 px-4 py-3 sm:px-6"
+  },
+  "key_components": {
+    "currency_input": {
+      "prefix": "Rp",
+      "formatting": "IDR thousand separators (e.g., 1.000.000)",
+      "quick_chips": ["10.000", "50.000", "100.000", "500.000", "1.000.000"]
+    },
+    "quick_action_modal": {
+      "title": "Tambah Transaksi (Uang Masuk / Uang Keluar)",
+      "features": ["Tab Uang Masuk vs Uang Keluar", "Nominal Input", "Pilihan Kategori", "Metode Pembayaran (Tunai, Transfer Bank, QRIS, E-Wallet)", "Catatan Singkat", "Upload Bukti Nota/Struk"]
+    },
+    "data_tables": {
+      "desktop": "Standard Shadcn Table with sorting, filter tags, batch selection, status badges",
+      "mobile": "Responsive Card List view with large touch targets, tap-to-expand receipt viewer"
+    },
+    "charts": {
+      "library": "Recharts / Shadcn Chart",
+      "income_color": "#10B981",
+      "expense_color": "#EF4444",
+      "profit_color": "#059669",
+      "tooltip_style": "Rounded-lg shadow-lg bg-slate-900 text-white p-3 border-none"
+    }
+  },
+  "image_urls": {
+    "msme_market_store": "https://images.unsplash.com/photo-1622572771591-6ca7813cc39d?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDN8MHwxfHNlYXJjaHwxfHxpbmRvbmVzaWFuJTIwc21hbGwlMjBidXNpbmVzcyUyMG93bmVyJTIwbWFya2V0JTIwc3RvcmUlMjBwcm9kdWN0fGVufDB8fHx8MTc4NjUzMDI3OHww&ixlib=rb-4.1.0&q=85",
+    "store_owner_female": "https://images.unsplash.com/photo-1753351052363-53ce102830eb?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Nzd8MHwxfHNlYXJjaHwzfHxzdG9yZSUyMG93bmVyJTIwc21hbGwlMjBidXNpbmVzcyUyMHBvcnRyYWl0fGVufDB8fHx8MTc4NjUzMDI4NXww&ixlib=rb-4.1.0&q=85",
+    "store_owner_male": "https://images.unsplash.com/photo-1762471712594-eadf362e7d0f?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Nzd8MHwxfHNlYXJjaHw0fHxzdG9yZSUyMG93bmVyJTIwc21hbGwlMjBidXNpbmVzcyUyMHBvcnRyYWl0fGVufDB8fHx8MTc4NjUzMDI4NXww&ixlib=rb-4.1.0&q=85",
+    "receipt_sample": "https://images.unsplash.com/photo-1731686602391-7484df33a03c?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzR8MHwxfHNlYXJjaHwyfHxyZWNlaXB0JTIwaW52b2ljZSUyMHBhcGVyJTIwZmluYW5jaWFsfGVufDB8fHx8MTc4NjUzMDI4NXww&ixlib=rb-4.1.0&q=85"
+  },
+  "instructions_to_main_agent": [
+    "Ensure complete multi-tenant data separation in frontend state & backend API queries.",
+    "Use clean, non-accounting Bahasa Indonesia language across the entire UI (Uang Masuk, Uang Keluar, Saldo, Laba).",
+    "Always format currency as IDR (e.g. Rp 1.500.000). Avoid raw numbers without formatting.",
+    "Implement both Admin/Bookkeeper multi-tenant management view and MSME User view with Role-Based Access Control.",
+    "Build mobile bottom navigation for screens under 768px width for fast mobile transaction recording.",
+    "Ensure all interactive elements have data-testid attributes for reliable automated end-to-end testing.",
+    "Use Sonner for user-friendly toast notifications upon adding transactions, changing status, or uploading receipts."
+  ],
+  "UNIVERSAL GUIDELINES FOR MAIN AGENT": {
+    "testing_attribute": "MUST add data-testid to all buttons, inputs, tabs, modal triggers, and metric cards.",
+    "color_contrast": "Ensure green buttons have high contrast dark text or pure white text (`bg-emerald-600 hover:bg-emerald-700 text-white`).",
+    "spacing": "Maintain generous card padding and grid gaps. Avoid cluttered UI.",
+    "toasts": "Use import { toast } from 'sonner' for success, error, and info feedback."
+  }
+}
