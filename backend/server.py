@@ -16,7 +16,10 @@ from fastapi.responses import StreamingResponse
 from starlette.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr, Field
 
+from starlette.concurrency import run_in_threadpool
+
 from db import db, client
+import ocr
 import auth as auth_mod
 from auth import (router as auth_router, get_current_user, require_admin, assert_business_access,
                   hash_password, public_user, create_business, seed_admin, create_default_categories)
@@ -70,7 +73,7 @@ async def log_audit(user: dict, action: str, business_id: Optional[str], record_
     })
 
 
-async def notify(business_id: Optional[str], role: str, title: str, message: str, link: str = ""):
+async def notify(business_id: Optional[str], role: str, title: str, message: str, link: str = "", kind: str = "general"):
     await db.notifications.insert_one({
         "_id": str(uuid.uuid4()),
         "business_id": business_id,
@@ -78,6 +81,7 @@ async def notify(business_id: Optional[str], role: str, title: str, message: str
         "title": title,
         "message": message,
         "link": link,
+        "kind": kind,
         "is_read": False,
         "created_at": now_iso(),
     })
@@ -481,6 +485,62 @@ async def download_receipt(receipt_id: str, authorization: Optional[str] = Heade
     data, ct = get_object(rec["storage_path"])
     return Response(content=data, media_type=rec.get("content_type", ct),
                     headers={"Content-Disposition": f'inline; filename="{rec.get("original_filename", "bukti")}"'})
+
+
+@api.post("/receipts/{receipt_id}/extract")
+async def extract_receipt(receipt_id: str, user: dict = Depends(get_current_user)):
+    """Foto Nota Pintar: baca nominal & tanggal dari nota via OCR (Tesseract, gratis)."""
+    rec = await db.receipts.find_one({"_id": receipt_id, "is_deleted": False})
+    if not rec:
+        raise HTTPException(status_code=404, detail="Bukti tidak ditemukan")
+    assert_business_access(user, rec["business_id"])
+    if rec.get("content_type") == "application/pdf":
+        raise HTTPException(status_code=400, detail="Baca otomatis hanya mendukung foto JPG/PNG")
+    data, _ = get_object(rec["storage_path"])
+    try:
+        result = await run_in_threadpool(ocr.extract_receipt_data, data)
+    except Exception as e:
+        logger.error(f"OCR gagal untuk {receipt_id}: {e}")
+        raise HTTPException(status_code=422, detail="Nota tidak dapat dibaca. Isi manual saja ya.")
+    return {
+        "amount": result["amount"],
+        "date": result["date"],
+        "found": bool(result["amount"] or result["date"]),
+    }
+
+
+# ---------------- reminders (Ingatkan Otomatis) ----------------
+INACTIVITY_DAYS = 3
+
+
+@api.get("/reminders/status")
+async def reminder_status(business_id: Optional[str] = None, user: dict = Depends(get_current_user)):
+    """Cek berapa hari usaha belum mencatat transaksi. Dipanggil saat dashboard dibuka."""
+    bid = business_id or user.get("business_id")
+    assert_business_access(user, bid)
+    now = datetime.now(timezone.utc)
+    last = await db.transactions.find({"business_id": bid, "is_deleted": False}).sort("created_at", -1).limit(1).to_list(1)
+    if last:
+        days = (now - datetime.fromisoformat(last[0]["created_at"])).days
+        last_date = last[0]["date"]
+    else:
+        b = await db.businesses.find_one({"_id": bid}, {"created_at": 1})
+        created = b.get("created_at") if b else None
+        days = (now - datetime.fromisoformat(created)).days if created else INACTIVITY_DAYS
+        last_date = None
+    remind = days >= INACTIVITY_DAYS
+    if remind and user.get("role") == "msme":
+        today = now.date().isoformat()
+        exists = await db.notifications.find_one({
+            "business_id": bid, "target_role": "msme", "kind": "inactivity_reminder",
+            "created_at": {"$gte": today},
+        })
+        if not exists:
+            await notify(bid, "msme", "Jangan lupa catat transaksi",
+                         f"Sudah {days} hari Anda belum mencatat transaksi. Catat sekarang agar laporan tetap rapi.",
+                         "/transaksi", kind="inactivity_reminder")
+    return {"remind": remind, "inactive_days": days, "last_transaction_date": last_date,
+            "threshold_days": INACTIVITY_DAYS}
 
 
 # ---------------- dashboards ----------------

@@ -29,6 +29,19 @@ Tenant isolation at backend, review workflow (pending → approved / needs_corre
 - Reports: Laba/Rugi, Arus Kas, ringkasan uang masuk & keluar; daily/weekly/monthly/custom range; CSV + PDF export
 - Receipts via object storage; audit log; notifications; demo data (5 UMKM + 4 months transactions)
 
+## Implemented (2026-08)
+- **Foto Nota Pintar (OCR gratis, Tesseract)** — user chose free Option A (may upgrade to LLM Vision later):
+  - `/app/backend/ocr.py`: Tesseract 5.3 (ind+eng), preprocessing (grayscale/upscale/autocontrast), amount parser (prioritizes TOTAL/JUMLAH lines, skips SUBTOTAL, handles Rp 25.000 / 12.500,00 formats), date parser (dd/mm/yyyy, yyyy-mm-dd, "15 Januari 2026")
+  - `POST /api/receipts/{id}/extract` (tenant-guarded, threadpool, PDF → 400, OCR fail → 422)
+  - TransactionDialog auto-fills amount & date after JPG/PNG upload, "Membaca nota..." state, ocr-hint text
+  - System deps recorded in `.emergent/system_deps.txt` (tesseract-ocr, tesseract-ocr-ind)
+- **Ingatkan Otomatis (inactivity reminder)** — in-app option (chosen by user):
+  - `GET /api/reminders/status` (threshold 3 days since last recorded transaction); creates in-app notification kind `inactivity_reminder` max once/day (idempotent)
+  - Blue banner `inactivity-reminder-banner` on MSME dashboard with "Catat Sekarang" button
+- Tested: iteration_2.json — backend 9/9, frontend 4/4 PASS. Pytest regression suite at `/app/backend/tests/test_new_features.py`
+- Note: kedai.nusantara demo transactions intentionally backdated 5 days so reminder banner is demo-able
+
 ## Backlog
 - P1: notification read state per user, admin ability to disable MSME category management, email delivery for reset link (Resend)
-- P2: OCR receipt reading, AI financial assistant, invoices, inventory, WhatsApp reminders, subscription payments, tax estimates
+- P1 (refactor): split server.py (833 lines) into routers (transactions/receipts/reminders/reports)
+- P2: upgrade OCR to LLM Vision (Emergent LLM key) if user wants higher accuracy, AI financial assistant, invoices, inventory, WhatsApp reminders, subscription payments, tax estimates

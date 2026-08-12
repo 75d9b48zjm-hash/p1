@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Wallet, TrendingUp, TrendingDown, PiggyBank, Plus, Receipt, FileBarChart2, Clock,
+  Wallet, TrendingUp, TrendingDown, PiggyBank, Plus, Receipt, FileBarChart2, Clock, BellRing,
 } from "lucide-react";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, LineChart, Line, PieChart, Pie, Cell, Legend,
@@ -23,6 +23,7 @@ const chartTooltip = {
 
 export const DashboardView = ({ businessId, canAdd = true, adminMode = false }) => {
   const [data, setData] = useState(null);
+  const [reminder, setReminder] = useState(null);
   const [dialog, setDialog] = useState({ open: false, type: "income" });
   const navigate = useNavigate();
 
@@ -30,6 +31,9 @@ export const DashboardView = ({ businessId, canAdd = true, adminMode = false }) 
     api.get("/dashboard/business", { params: businessId ? { business_id: businessId } : {} })
       .then(({ data }) => setData(data))
       .catch(() => setData(null));
+    api.get("/reminders/status", { params: businessId ? { business_id: businessId } : {} })
+      .then(({ data }) => setReminder(data))
+      .catch(() => setReminder(null));
   }, [businessId]);
 
   useEffect(() => { load(); }, [load]);
@@ -49,6 +53,18 @@ export const DashboardView = ({ businessId, canAdd = true, adminMode = false }) 
         <MetricCard testId="metric-profit" label="Laba Bersih (bulan ini)" value={rupiah(data.month_profit)} Icon={PiggyBank}
           tone={data.month_profit >= 0 ? "green" : "red"} />
       </div>
+
+      {reminder?.remind && !adminMode && (
+        <div data-testid="inactivity-reminder-banner" className="card-soft p-4 sm:p-5 flex flex-wrap items-center gap-3 border-sky-200/70 bg-sky-50/60">
+          <BellRing className="h-5 w-5 text-sky-600" />
+          <p className="text-sm text-sky-800 flex-1">
+            Sudah <b>{reminder.inactive_days} hari</b> Anda belum mencatat transaksi.
+            Yuk catat sekarang supaya laporan usaha tetap rapi dan akurat.
+          </p>
+          <Button size="sm" className="rounded-xl bg-sky-600 hover:bg-sky-700 text-white" data-testid="reminder-add-transaction"
+            onClick={() => setDialog({ open: true, type: "income" })}>Catat Sekarang</Button>
+        </div>
+      )}
 
       {(data.pending_count > 0 || data.needs_correction_count > 0) && (
         <div data-testid="pending-banner" className="card-soft p-4 sm:p-5 flex flex-wrap items-center gap-3 border-amber-200/70 bg-amber-50/50">
