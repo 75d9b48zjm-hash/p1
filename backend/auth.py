@@ -129,10 +129,12 @@ class ChangePasswordInput(BaseModel):
 
 
 DEFAULT_CATEGORIES = [
+    ("income", "Belum Dikategorikan"),
     ("income", "Penjualan"),
     ("income", "Pendapatan Jasa"),
     ("income", "Pendapatan Lain"),
     ("income", "Suntikan Modal"),
+    ("expense", "Belum Dikategorikan"),
     ("expense", "Stok / Bahan"),
     ("expense", "Gaji"),
     ("expense", "Sewa"),
@@ -144,6 +146,8 @@ DEFAULT_CATEGORIES = [
     ("expense", "Biaya Operasional"),
     ("expense", "Pengeluaran Lain"),
 ]
+
+UNCATEGORIZED = "Belum Dikategorikan"
 
 
 async def create_default_categories(business_id: str):

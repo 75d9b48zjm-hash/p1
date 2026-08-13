@@ -22,7 +22,8 @@ from db import db, client
 import ocr
 import auth as auth_mod
 from auth import (router as auth_router, get_current_user, require_admin, assert_business_access,
-                  hash_password, public_user, create_business, seed_admin, create_default_categories)
+                  hash_password, public_user, create_business, seed_admin, create_default_categories,
+                  UNCATEGORIZED)
 from seed import seed_demo
 from storage import init_storage, put_object, get_object, APP_NAME, MIME_TYPES
 import exports
@@ -155,6 +156,8 @@ class TransactionInput(BaseModel):
 class ReviewInput(BaseModel):
     status: str
     note: Optional[str] = None
+    category: Optional[str] = None
+    description: Optional[str] = None
 
 
 class CategoryInput(BaseModel):
@@ -267,6 +270,46 @@ async def create_category(body: CategoryInput, user: dict = Depends(get_current_
     return clean(doc)
 
 
+@api.get("/categories/suggest")
+async def suggest_category(
+    text: str = "",
+    type: str = "expense",
+    business_id: Optional[str] = None,
+    user: dict = Depends(get_current_user),
+):
+    """Saran kategori dari histori transaksi UMKM (rule-based, gratis). Cocokkan kata kunci
+    dari deskripsi terbaru pengguna. Jangan pernah menyarankan 'Belum Dikategorikan'."""
+    bid = business_id or user.get("business_id")
+    assert_business_access(user, bid)
+    if type not in ("income", "expense"):
+        return {"suggestion": None, "confidence": 0}
+    text = (text or "").lower().strip()
+    if len(text) < 2:
+        return {"suggestion": None, "confidence": 0}
+    tokens = [t for t in text.replace("/", " ").replace(",", " ").split() if len(t) >= 3]
+    if not tokens:
+        return {"suggestion": None, "confidence": 0}
+    rows = await db.transactions.find(
+        {"business_id": bid, "type": type, "is_deleted": False,
+         "category": {"$ne": UNCATEGORIZED}},
+        {"description": 1, "category": 1}
+    ).sort("created_at", -1).limit(500).to_list(500)
+    scores = {}
+    for r in rows:
+        desc = (r.get("description") or "").lower()
+        if not desc:
+            continue
+        matched = sum(1 for tok in tokens if tok in desc)
+        if matched:
+            cat = r["category"]
+            scores[cat] = scores.get(cat, 0) + matched
+    if not scores:
+        return {"suggestion": None, "confidence": 0}
+    best = max(scores.items(), key=lambda kv: kv[1])
+    total = sum(scores.values())
+    return {"suggestion": best[0], "confidence": best[1] / total, "match_score": best[1]}
+
+
 @api.delete("/categories/{category_id}")
 async def delete_category(category_id: str, user: dict = Depends(get_current_user)):
     cat = await db.categories.find_one({"_id": category_id})
@@ -332,15 +375,22 @@ async def create_transaction(body: TransactionInput, user: dict = Depends(get_cu
         raise HTTPException(status_code=400, detail="Nominal harus lebih dari 0")
     if body.type not in ("income", "expense"):
         raise HTTPException(status_code=400, detail="Jenis transaksi tidak valid")
-    if not body.category:
-        raise HTTPException(status_code=400, detail="Kategori wajib dipilih")
+    category = (body.category or "").strip() or UNCATEGORIZED
+    if category == UNCATEGORIZED:
+        exists = await db.categories.find_one({"business_id": bid, "name": UNCATEGORIZED, "type": body.type, "is_deleted": False})
+        if not exists:
+            await db.categories.insert_one({
+                "_id": str(uuid.uuid4()), "business_id": bid, "type": body.type,
+                "name": UNCATEGORIZED, "is_default": True, "is_deleted": False,
+                "created_at": now_iso(),
+            })
     is_admin = user.get("role") == "admin"
     doc = {
         "_id": str(uuid.uuid4()),
         "business_id": bid,
         "date": body.date,
         "type": body.type,
-        "category": body.category,
+        "category": category,
         "amount": float(body.amount),
         "description": body.description,
         "payment_method": body.payment_method if body.payment_method in PAYMENT_METHODS else "Lainnya",
@@ -407,10 +457,17 @@ async def review_transaction(transaction_id: str, body: ReviewInput, user: dict 
     t = await db.transactions.find_one({"_id": transaction_id, "is_deleted": False})
     if not t:
         raise HTTPException(status_code=404, detail="Transaksi tidak ditemukan")
-    await db.transactions.update_one({"_id": transaction_id}, {"$set": {
+    update = {
         "status": body.status, "review_note": body.note, "reviewed_by": user["_id"],
         "reviewed_by_name": user.get("name"), "reviewed_at": now_iso(), "updated_at": now_iso(),
-    }})
+    }
+    if body.category and body.category != t.get("category"):
+        update["category"] = body.category
+        await log_audit(user, "category_changed", t["business_id"], "transaction", transaction_id,
+                        t.get("category"), body.category, f"Kategori dikelompokkan: {t.get('category')} → {body.category}")
+    if body.description is not None and body.description != t.get("description", ""):
+        update["description"] = body.description
+    await db.transactions.update_one({"_id": transaction_id}, {"$set": update})
     action = "transaction_approved" if body.status == "approved" else "transaction_rejected"
     await log_audit(user, action, t["business_id"], "transaction", transaction_id, t["status"], body.status,
                     "Transaksi disetujui" if body.status == "approved" else "Transaksi perlu perbaikan")

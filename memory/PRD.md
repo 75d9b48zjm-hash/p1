@@ -29,6 +29,17 @@ Tenant isolation at backend, review workflow (pending → approved / needs_corre
 - Reports: Laba/Rugi, Arus Kas, ringkasan uang masuk & keluar; daily/weekly/monthly/custom range; CSV + PDF export
 - Receipts via object storage; audit log; notifications; demo data (5 UMKM + 4 months transactions)
 
+## Implemented (2026-02)
+- **Mode Cepat + Saran Kategori Otomatis (Cockpit Kategorisasi)** — reason: user is a student available only after 4pm, wants zero-cost async workflow (Rp 0):
+  - Backend: `POST /api/transactions` accepts empty category → defaults to sentinel `"Belum Dikategorikan"` (auto-created per business as needed); `DEFAULT_CATEGORIES` in `auth.py` now includes `UNCATEGORIZED` for both income & expense
+  - Backend: `GET /api/categories/suggest?type=&text=&business_id=` — rule-based (last 500 txs of that biz+type, token overlap on description, excludes UNCATEGORIZED); returns `{suggestion, confidence, match_score}` or null
+  - Backend: `POST /api/transactions/{id}/review` now accepts optional `category` + `description` — updates during approval, writes `category_changed` audit log
+  - Frontend `TransactionDialog.jsx`: `quickMode` toggle (default ON for MSME), hides category select & payment method when active, uses `useAuth` to detect role, debounced (400ms) suggestion chip `data-testid=suggestion-chip` from description → tap to apply → `applied-category` chip
+  - Frontend `pages/AdminCockpit.jsx` (new) at `/admin/kategorisasi`: inbox-style two-panel — pending queue on left, detail + suggestion + category pills on right; keyboard shortcuts: **1-9** pick chip, **Enter** approve, **↑↓** navigate; optimistic removal after approval
+  - Sidebar `ADMIN_NAV` now includes `Cockpit` (Zap icon) between UMKM and Transaksi; `AdminDashboard` pending banner has "Buka Cockpit" + "Tinjau manual" buttons
+  - Tests: `/app/backend/tests/test_quickmode_cockpit.py` (9 pytest) — all pass; iteration_3.json 100%
+  - Zero-cost strategy: MongoDB Atlas Free (512MB), Vercel/Netlify Free (frontend), Render/Railway Free (backend, UptimeRobot to prevent sleep), Cloudinary/B2 Free (receipts) → ~Rp 0/bulan for up to ~100 UMKM
+
 ## Implemented (2026-08)
 - **Foto Nota Pintar (OCR gratis, Tesseract)** — user chose free Option A (may upgrade to LLM Vision later):
   - `/app/backend/ocr.py`: Tesseract 5.3 (ind+eng), preprocessing (grayscale/upscale/autocontrast), amount parser (prioritizes TOTAL/JUMLAH lines, skips SUBTOTAL, handles Rp 25.000 / 12.500,00 formats), date parser (dd/mm/yyyy, yyyy-mm-dd, "15 Januari 2026")

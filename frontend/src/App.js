@@ -9,6 +9,7 @@ import AdminDashboard from "@/pages/AdminDashboard";
 import AdminBusinesses from "@/pages/AdminBusinesses";
 import AdminBusinessDetail from "@/pages/AdminBusinessDetail";
 import { AdminTransactions, AdminReports, AdminInsights, AdminCategories } from "@/pages/AdminPages";
+import AdminCockpit from "@/pages/AdminCockpit";
 import AuditLogs from "@/pages/AuditLogs";
 import Settings from "@/pages/Settings";
 import { MsmeDashboard, MsmeTransactions, MsmeReports, MsmeInsights } from "@/pages/MsmePages";
@@ -49,6 +50,7 @@ export default function App() {
           <Route path="/admin" element={<Guard role="admin"><AdminDashboard /></Guard>} />
           <Route path="/admin/umkm" element={<Guard role="admin"><AdminBusinesses /></Guard>} />
           <Route path="/admin/umkm/:businessId" element={<Guard role="admin"><AdminBusinessDetail /></Guard>} />
+          <Route path="/admin/kategorisasi" element={<Guard role="admin"><AdminCockpit /></Guard>} />
           <Route path="/admin/transaksi" element={<Guard role="admin"><AdminTransactions /></Guard>} />
           <Route path="/admin/laporan" element={<Guard role="admin"><AdminReports /></Guard>} />
           <Route path="/admin/insight" element={<Guard role="admin"><AdminInsights /></Guard>} />

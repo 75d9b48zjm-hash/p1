@@ -37,8 +37,10 @@ export default function AdminDashboard() {
               <p className="text-sm text-amber-800 flex-1">
                 Ada <b>{stats.pending_count}</b> transaksi menunggu tinjauan Anda. Transaksi ini belum masuk laporan resmi UMKM.
               </p>
-              <Button className="rounded-xl bg-amber-500 hover:bg-amber-600 text-white" data-testid="goto-review"
-                onClick={() => navigate("/admin/transaksi")}>Tinjau sekarang</Button>
+              <Button className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white" data-testid="goto-cockpit"
+                onClick={() => navigate("/admin/kategorisasi")}>Buka Cockpit</Button>
+              <Button variant="outline" className="rounded-xl" data-testid="goto-review"
+                onClick={() => navigate("/admin/transaksi")}>Tinjau manual</Button>
             </div>
           )}
 

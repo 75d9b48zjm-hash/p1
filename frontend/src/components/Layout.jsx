@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Store, ClipboardCheck, FileBarChart2, Lightbulb, Tags, ScrollText,
-  Settings as SettingsIcon, LogOut, Bell, Menu, X, Wallet, Receipt,
+  Settings as SettingsIcon, LogOut, Bell, Menu, X, Wallet, Receipt, Zap,
 } from "lucide-react";
 import api from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
@@ -13,6 +13,7 @@ import { formatDateTime } from "@/lib/format";
 const ADMIN_NAV = [
   { to: "/admin", label: "Dashboard", Icon: LayoutDashboard },
   { to: "/admin/umkm", label: "UMKM", Icon: Store },
+  { to: "/admin/kategorisasi", label: "Cockpit", Icon: Zap },
   { to: "/admin/transaksi", label: "Transaksi", Icon: ClipboardCheck },
   { to: "/admin/laporan", label: "Laporan", Icon: FileBarChart2 },
   { to: "/admin/insight", label: "Analisis", Icon: Lightbulb },
