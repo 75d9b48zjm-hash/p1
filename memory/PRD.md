@@ -52,6 +52,17 @@ Tenant isolation at backend, review workflow (pending → approved / needs_corre
 - Tested: iteration_2.json — backend 9/9, frontend 4/4 PASS. Pytest regression suite at `/app/backend/tests/test_new_features.py`
 - Note: kedai.nusantara demo transactions intentionally backdated 5 days so reminder banner is demo-able
 
+## Implemented (2026-06, deploy gratis tanpa kartu kredit)
+- User tidak punya kartu kredit → Render tidak dipakai. Stack final: **MongoDB Atlas + Koyeb (backend) + Vercel (frontend)**
+- `/app/backend/storage.py` di-refactor jadi multi-provider dengan API sama (`init_storage/put_object/get_object/delete_object`):
+  - `cloudinary` (kalau CLOUDINARY_CLOUD_NAME/API_KEY/API_SECRET ada) — simpan via SDK, `path` = secure_url
+  - `mongo` (DEFAULT) — GridFS collection `receipt_files` di MongoDB Atlas, tanpa layanan tambahan
+  - `emergent` — hanya kalau `STORAGE_PROVIDER=emergent` (preview lama)
+  - `get_object` mengenali path berupa URL http(s) → tetap bisa baca nota lama/Cloudinary
+- `cloudinary==1.46.2` ditambahkan (requirements.txt + requirements.prod.txt)
+- File deploy baru: `/app/backend/Dockerfile` (python3.11-slim + tesseract-ocr-ind, port dari `$PORT`), `/app/backend/requirements.prod.txt` (ramping, tanpa emergentintegrations/litellm), `/app/backend/.dockerignore`, `/app/frontend/vercel.json` (SPA rewrite), `/app/DEPLOY.md` (panduan langkah demi langkah Bahasa Indonesia)
+- Diuji manual (curl, provider mongo/GridFS): upload nota 200, download 200 (2098 bytes), OCR extract `{amount:150000, date:2026-08-30}`
+
 ## Backlog
 - P1: notification read state per user, admin ability to disable MSME category management, email delivery for reset link (Resend)
 - P1 (refactor): split server.py (833 lines) into routers (transactions/receipts/reminders/reports)
