@@ -75,7 +75,22 @@ Tenant isolation at backend, review workflow (pending → approved / needs_corre
 - Meniru Mode Cepat: kategori/metode/status boleh kosong → baris kuning → admin melengkapi lewat dropdown
 - Diverifikasi dengan LibreOffice headless (recalc + render PDF→PNG): semua rumus SUMIFS/COUNTIFS/saldo berjalan/rekap/tagihan menghasilkan angka benar, 0 sel error, grafik tampil, format Rupiah & tanggal benar, nama bulan Bahasa Indonesia (CHOOSE)
 
+## Implemented (2026-06, tampilan Excel dirombak + grafik indikator)
+- Permintaan user: "buat tampilannya lebih menarik, modern, simple, rapi, praktis, juga berikan grafik sebagai indikator". Pilihan user: yang dipercantik = **file Excel**; dipakai **campur HP + laptop**; indikator = **kartu KPI + panah vs bulan lalu, tren garis, top kategori pengeluaran**; gaya = **bersih-profesional (agen bebas memilih detail)**; brand = KasUMKM.
+- `/app/tools/generate_excel_templates.py` ditulis ulang (design tokens NAVY/GREEN/RED/BLUE/AMBER/SLATE, helper `no_grid/page_head/section/card/mini/block/month_picker/table_head`), semua sheet: gridline dimatikan, judul eyebrow + judul besar, tabel zebra, border tipis.
+- Sheet baru **Data Grafik** (tab abu, terproteksi) = sumber angka kartu & grafik: ringkasan bulan ini vs bulan lalu, tabel 12 bulan, pengeluaran per kategori (kolom "nilai unik" untuk tie-break LARGE), Top 5 + "Lainnya & belum dikategorikan" (= total keluar − top5, jadi donat = 100% pengeluaran).
+- Dashboard UMKM baru: kendali Bulan `C6` / Tahun `F6`, kunci bulan `C8`, kunci bulan lalu `F8` (baris 8 disembunyikan, juga berisi cermin H8:O8 supaya conditional formatting tidak lintas-sheet → aman di Google Sheets); 4 kartu KPI 2×2 (Uang Masuk/Keluar/Laba/Saldo) dengan delta `▲/▼ x% vs bulan lalu` (warna dibalik untuk Uang Keluar), lampu status ● SEHAT/IMBANG/WASPADA, Ringkasan Cepat 2×2, Top 5 pengeluaran dengan balok `█` (REPT) supaya tetap terbaca di HP.
+- 3 grafik bawaan (tanpa macro): BarChart 12 bulan (hijau/merah), LineChart tren harian (sumber Arus Kas kolom H = nomor hari), DoughnutChart komposisi pengeluaran (label persen saja, warna per slice).
+- Laba Rugi: kolom "% dari Pemasukan", total ber-tint hijau/merah, baris LABA/RUGI BERSIH navy, kotak Catatan Admin (tidak terkunci).
+- Arus Kas Harian: kolom Grafik Masuk/Keluar (balok █ hijau/merah), saldo minus otomatis merah, kolom bantu Hari.
+- Rekap-Admin: Rekap dapat 4 kartu (total masuk/keluar/laba gabungan + jumlah UMKM perlu diingatkan, delta vs bulan lalu dari helper H8:J8), tabel detail pindah ke baris 19-39 + total baris 41, kolom **Status** ● hijau/kuning/merah, kolom **Grafik Laba** (█), 2 bar chart (masuk vs keluar per UMKM, laba per UMKM). Tagihan Jasa: kartu Total Pendapatan & Belum Dibayar, CF status bayar.
+- Semua referensi sel lintas-sheet diperbarui (Profil Usaha `C7`/`C14`, Kategori kolom B/C/D/E/F/G baris 7+, Dashboard `C6/F6/C8`).
+- Verifikasi: LibreOffice headless recalc (`--convert-to xlsx`) → **0 sel error** di 3 file; angka dicek silang (Laba Rugi = Dashboard = Arus Kas = Rp 12.740.000 laba Juni; top5 + Lainnya = total keluar Rp 7.604.000); render PDF→PNG untuk cek visual; endpoint `/api/excel/list` + 4 download → 200 dengan ukuran file terbaru.
+- `Panduan-Pemakaian.md` ditambah bagian **D. Cara baca Dashboard** (tabel arti kartu/panah/lampu/balok/grafik) dan penjelasan sheet Data Grafik.
+
 ## Backlog
+- P1 (Excel): sheet "Rekap WhatsApp" di `Rekap-Admin.xlsx` — teks laporan harian/bulanan siap copy-paste ke klien
+- P2 (Excel): landing page publik untuk menawarkan jasa pembukuan + tombol unduh template
 - P1: notification read state per user, admin ability to disable MSME category management, email delivery for reset link (Resend)
 - P1 (refactor): split server.py (833 lines) into routers (transactions/receipts/reminders/reports)
 - P2: upgrade OCR to LLM Vision (Emergent LLM key) if user wants higher accuracy, AI financial assistant, invoices, inventory, WhatsApp reminders, subscription payments, tax estimates

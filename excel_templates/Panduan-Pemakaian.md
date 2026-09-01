@@ -51,11 +51,35 @@ Kalau punya foto nota: simpan fotonya di folder Google Drive, lalu tempel tautan
 3. Isi **Kategori** dan **Metode Bayar** lewat dropdown, ubah **Status** jadi `Disetujui`.
    Kalau ada yang perlu ditanyakan, pilih Status `Perlu Perbaikan` dan tulis di **Catatan Admin**.
 4. Buka sheet **Cek Data** untuk melihat data bermasalah (nominal kosong, tanggal salah, dugaan duplikat).
-5. Buka sheet **Dashboard**, atur **Bulan** dan **Tahun** → semua angka & grafik ikut berubah.
+5. Buka sheet **Dashboard**, atur **Bulan** dan **Tahun** → semua kartu, indikator, dan grafik ikut berubah.
 
 ---
 
-## D. Akhir bulan
+## D. Cara baca Dashboard (kartu, indikator, grafik)
+
+Sheet **Dashboard** dibuat supaya sekali lihat langsung paham:
+
+| Bagian | Cara baca |
+|---|---|
+| 4 kartu besar | Uang Masuk, Uang Keluar, Laba/Rugi, Saldo Kas bulan terpilih |
+| Tulisan ▲ / ▼ di kartu | Pembanding dengan bulan lalu. ▲ hijau = membaik, ▼ merah = menurun. Khusus kartu **Uang Keluar** warnanya dibalik (naik = merah, karena boros) |
+| Lampu status (kanan atas) | ● hijau **SEHAT** (laba positif), ● kuning **IMBANG**, ● merah **WASPADA** (pengeluaran lebih besar) |
+| Ringkasan Cepat | Jumlah transaksi, berapa yang belum dikategorikan, belum disetujui, dan kapan terakhir mencatat |
+| Uang Paling Banyak Keluar | 5 kategori terbesar bulan ini + balok █ (makin panjang = makin besar) |
+| Grafik 12 Bulan | Batang hijau/merah: uang masuk vs uang keluar sepanjang tahun |
+| Grafik Tren Harian | Garis naik-turun penjualan & pengeluaran per tanggal pada bulan terpilih |
+| Grafik Donat | Komposisi uang keluar bulan ini per kategori |
+
+Sheet **Arus Kas Harian** juga punya balok █ hijau/merah per tanggal, dan saldo berjalan
+otomatis berwarna merah kalau kas minus.
+
+> Di HP: buka sheet Dashboard, kartu-kartunya tersusun 2×2 supaya tetap terbaca tanpa
+> menggeser layar. Balok █ sengaja dipakai karena selalu tampil di semua aplikasi,
+> termasuk Google Spreadsheet versi HP.
+
+---
+
+## E. Akhir bulan
 
 1. Sheet **Laba Rugi** → atur bulan di Dashboard → `File → Cetak → Simpan sebagai PDF`.
 2. Kirim PDF-nya ke pemilik usaha via WhatsApp. Contoh pesan:
@@ -72,13 +96,15 @@ Laporan lengkap saya lampirkan ya. Terima kasih 🙏
 
 3. Buka `Rekap-Admin.xlsx` → sheet **Salin Data**: dari setiap file UMKM, salin kolom
    Tanggal–Status di sheet Transaksi, tempel ke bawah, dan tulis **Nama Usaha** di kolom A.
-4. Sheet **Rekap** langsung menampilkan perbandingan semua UMKM, jumlah baris yang belum
-   dikategorikan, dan berapa hari sebuah UMKM belum mencatat (untuk diingatkan).
-5. Sheet **Tagihan Jasa** → atur tarif → dapat rincian biaya jasa per UMKM bulan itu.
+4. Sheet **Rekap** langsung menampilkan kartu total (uang masuk, uang keluar, laba gabungan,
+   UMKM yang perlu diingatkan), kolom **Status** berlampu ● hijau/kuning/merah, kolom
+   **Grafik Laba** dengan balok █, serta 2 grafik perbandingan antar UMKM.
+5. Sheet **Tagihan Jasa** → atur tarif → dapat rincian biaya jasa per UMKM bulan itu,
+   lengkap dengan kartu total pendapatan dan sisa yang belum dibayar.
 
 ---
 
-## E. Hal penting
+## F. Hal penting
 
 - File **tanpa macro/VBA**, jadi aman dibuka di HP, Excel, WPS, LibreOffice, dan Google Spreadsheet.
 - Sel yang berisi rumus dikunci agar tidak tertimpa. Untuk membukanya:
@@ -87,10 +113,11 @@ Laporan lengkap saya lampirkan ya. Terima kasih 🙏
   Kalau penuh, buat file baru untuk tahun berikutnya.
 - Jangan menghapus **kolom** atau **memindahkan sheet**, karena rumus mengacu ke posisi kolom.
   Menambah/menghapus **baris di dalam tabel Transaksi** aman.
-- Kolom **Bulan** (kolom J di sheet Transaksi) adalah kolom bantu untuk rumus — biarkan saja.
+- Kolom **Bulan** (kolom J di sheet Transaksi) dan sheet **Data Grafik** adalah pembantu rumus —
+  biarkan saja, jangan dihapus. Sheet Data Grafik itulah yang mengisi kartu dan grafik Dashboard.
 - Isi seluruh nominal dengan angka saja, tanpa `Rp` dan tanpa titik.
 
-## F. Yang tidak ada di versi Excel ini
+## G. Yang tidak ada di versi Excel ini
 
 - Baca nota otomatis (OCR) — foto nota disimpan manual di Drive.
 - Pengingat otomatis — sheet Rekap menunjukkan siapa yang lama tidak mencatat, pesannya Anda kirim sendiri.
