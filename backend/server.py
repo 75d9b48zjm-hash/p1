@@ -12,7 +12,7 @@ from datetime import datetime, timezone, timedelta, date
 from typing import Optional, List
 
 from fastapi import FastAPI, APIRouter, Depends, HTTPException, UploadFile, File, Query, Response, Header
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, FileResponse, HTMLResponse
 from starlette.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr, Field
 
@@ -849,6 +849,46 @@ async def update_profile(body: ProfileInput, user: dict = Depends(get_current_us
 @api.get("/")
 async def root():
     return {"message": "KasUMKM API siap"}
+
+
+EXCEL_DIR = ROOT_DIR.parent / "excel_templates"
+EXCEL_FILES = {
+    "template": ("Pembukuan-Template.xlsx", "Template Pembukuan Kosong (untuk UMKM)"),
+    "contoh": ("Pembukuan-TokoMaju-Contoh.xlsx", "Contoh Pembukuan Terisi (Toko Maju)"),
+    "admin": ("Rekap-Admin.xlsx", "Rekap Admin (Dashboard Gabungan)"),
+    "panduan": ("Panduan-Pemakaian.md", "Panduan Pemakaian"),
+}
+
+
+@api.get("/excel/list", response_class=HTMLResponse)
+async def excel_list():
+    rows = ""
+    for key, (fname, label) in EXCEL_FILES.items():
+        rows += (
+            f'<li style="margin:14px 0;"><a href="/api/excel/download/{key}" '
+            f'style="color:#0b6b3a;font-weight:600;text-decoration:none;">⬇ {label}</a> '
+            f'<span style="color:#888;font-size:13px;">({fname})</span></li>'
+        )
+    html = f"""<!doctype html><html lang="id"><head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Download Template Excel KasUMKM</title></head>
+    <body style="font-family:system-ui,Segoe UI,Roboto,sans-serif;max-width:640px;margin:40px auto;padding:0 20px;">
+    <h1 style="color:#0b6b3a;">📊 Template Excel KasUMKM</h1>
+    <p style="color:#444;">Klik untuk mengunduh file di HP atau laptop Anda. File bisa dibuka di Google Sheets atau Excel Mobile (tanpa macro).</p>
+    <ul style="list-style:none;padding:0;font-size:17px;">{rows}</ul>
+    </body></html>"""
+    return HTMLResponse(html)
+
+
+@api.get("/excel/download/{key}")
+async def excel_download(key: str):
+    if key not in EXCEL_FILES:
+        raise HTTPException(status_code=404, detail="File tidak ditemukan")
+    fname = EXCEL_FILES[key][0]
+    path = EXCEL_DIR / fname
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="File belum tersedia")
+    return FileResponse(path, filename=fname)
 
 
 app.include_router(auth_router)
