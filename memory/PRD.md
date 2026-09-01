@@ -63,6 +63,18 @@ Tenant isolation at backend, review workflow (pending → approved / needs_corre
 - File deploy baru: `/app/backend/Dockerfile` (python3.11-slim + tesseract-ocr-ind, port dari `$PORT`), `/app/backend/requirements.prod.txt` (ramping, tanpa emergentintegrations/litellm), `/app/backend/.dockerignore`, `/app/frontend/vercel.json` (SPA rewrite), `/app/DEPLOY.md` (panduan langkah demi langkah Bahasa Indonesia)
 - Diuji manual (curl, provider mongo/GridFS): upload nota 200, download 200 (2098 bytes), OCR extract `{amount:150000, date:2026-08-30}`
 
+## Implemented (2026-06, versi Excel / non-aplikasi)
+- User minta template pembukuan berbasis Excel (tanpa macro) sebagai pelengkap aplikasi web. Aplikasi web TIDAK diubah.
+- Generator: `/app/tools/generate_excel_templates.py` (openpyxl) → jalankan `python3 tools/generate_excel_templates.py`
+- Output di `/app/excel_templates/`:
+  - `Pembukuan-Template.xlsx` (kosong, untuk digandakan per UMKM)
+  - `Pembukuan-TokoMaju-Contoh.xlsx` (terisi ±141 transaksi Mei–Jun 2026)
+  - `Rekap-Admin.xlsx` (Salin Data 2000 baris, Rekap 20 UMKM, Tagihan Jasa)
+  - `Panduan-Pemakaian.md`
+- Sheet per UMKM: Petunjuk, Profil Usaha, Transaksi (500 baris, dropdown, kolom bantu J=yyyy-mm, conditional formatting kuning utk kategori kosong), Dashboard (pilih bulan/tahun + 3 grafik), Laba Rugi (siap PDF), Arus Kas Harian (saldo berjalan), Kategori, Cek Data, Contoh Pengisian
+- Meniru Mode Cepat: kategori/metode/status boleh kosong → baris kuning → admin melengkapi lewat dropdown
+- Diverifikasi dengan LibreOffice headless (recalc + render PDF→PNG): semua rumus SUMIFS/COUNTIFS/saldo berjalan/rekap/tagihan menghasilkan angka benar, 0 sel error, grafik tampil, format Rupiah & tanggal benar, nama bulan Bahasa Indonesia (CHOOSE)
+
 ## Backlog
 - P1: notification read state per user, admin ability to disable MSME category management, email delivery for reset link (Resend)
 - P1 (refactor): split server.py (833 lines) into routers (transactions/receipts/reminders/reports)
