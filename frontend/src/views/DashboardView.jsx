@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Wallet, TrendingUp, TrendingDown, PiggyBank, Plus, Receipt, FileBarChart2, Clock, BellRing,
+  Wallet, TrendingUp, TrendingDown, PiggyBank, Plus, Receipt, FileBarChart2, FileSpreadsheet,
 } from "lucide-react";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, LineChart, Line, PieChart, Pie, Cell, Legend,
 } from "recharts";
 import api from "@/lib/api";
 import { rupiah, rupiahShort, formatDate } from "@/lib/format";
-import { MetricCard, StatusBadge, Amount, Loader, EmptyState, SectionTitle } from "@/components/Bits";
+import { MetricCard, Amount, Loader, EmptyState } from "@/components/Bits";
 import { TransactionDialog } from "@/components/TransactionDialog";
 import { Button } from "@/components/ui/button";
 
@@ -21,9 +21,11 @@ const chartTooltip = {
   formatter: (v) => rupiah(v),
 };
 
-export const DashboardView = ({ businessId, canAdd = true, adminMode = false }) => {
+const periodLabel = () =>
+  new Date().toLocaleDateString("id-ID", { month: "long", year: "numeric" });
+
+export const DashboardView = ({ businessId, onExport, exporting = false }) => {
   const [data, setData] = useState(null);
-  const [reminder, setReminder] = useState(null);
   const [dialog, setDialog] = useState({ open: false, type: "income" });
   const navigate = useNavigate();
 
@@ -31,9 +33,6 @@ export const DashboardView = ({ businessId, canAdd = true, adminMode = false }) 
     api.get("/dashboard/business", { params: businessId ? { business_id: businessId } : {} })
       .then(({ data }) => setData(data))
       .catch(() => setData(null));
-    api.get("/reminders/status", { params: businessId ? { business_id: businessId } : {} })
-      .then(({ data }) => setReminder(data))
-      .catch(() => setReminder(null));
   }, [businessId]);
 
   useEffect(() => { load(); }, [load]);
@@ -44,7 +43,20 @@ export const DashboardView = ({ businessId, canAdd = true, adminMode = false }) 
   const expensePie = data.expense_categories.slice(0, 6).map((c) => ({ name: c.name, value: c.amount }));
 
   return (
-    <div className="space-y-6 sm:space-y-8">
+    <div className="space-y-6 sm:space-y-8" data-testid="dashboard-view">
+      {/* Header rapi untuk di-screenshot */}
+      <div className="rounded-2xl bg-slate-900 text-white p-5 sm:p-6 flex flex-wrap items-center justify-between gap-4" data-testid="dashboard-header">
+        <div>
+          <p className="text-[11px] font-semibold text-emerald-400 uppercase tracking-wide">KasUMKM · Laporan Bulanan</p>
+          <p className="text-xl sm:text-2xl font-bold mt-0.5">{data.business.name}</p>
+          <p className="text-sm text-slate-300 mt-0.5">Periode {periodLabel()}</p>
+        </div>
+        <div className="text-right">
+          <p className="text-xs text-slate-400">Saldo Saat Ini</p>
+          <p className="text-2xl sm:text-3xl font-mono font-bold text-emerald-400">{rupiah(data.balance)}</p>
+        </div>
+      </div>
+
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 stagger">
         <MetricCard testId="metric-balance" label="Saldo Saat Ini" value={rupiah(data.balance)} Icon={Wallet} tone="green"
           sub="Saldo awal + masuk - keluar" />
@@ -54,57 +66,38 @@ export const DashboardView = ({ businessId, canAdd = true, adminMode = false }) 
           tone={data.month_profit >= 0 ? "green" : "red"} />
       </div>
 
-      {reminder?.remind && !adminMode && (
-        <div data-testid="inactivity-reminder-banner" className="card-soft p-4 sm:p-5 flex flex-wrap items-center gap-3 border-sky-200/70 bg-sky-50/60">
-          <BellRing className="h-5 w-5 text-sky-600" />
-          <p className="text-sm text-sky-800 flex-1">
-            Sudah <b>{reminder.inactive_days} hari</b> Anda belum mencatat transaksi.
-            Yuk catat sekarang supaya laporan usaha tetap rapi dan akurat.
-          </p>
-          <Button size="sm" className="rounded-xl bg-sky-600 hover:bg-sky-700 text-white" data-testid="reminder-add-transaction"
-            onClick={() => setDialog({ open: true, type: "income" })}>Catat Sekarang</Button>
-        </div>
-      )}
-
-      {(data.pending_count > 0 || data.needs_correction_count > 0) && (
-        <div data-testid="pending-banner" className="card-soft p-4 sm:p-5 flex flex-wrap items-center gap-3 border-amber-200/70 bg-amber-50/50">
-          <Clock className="h-5 w-5 text-amber-600" />
-          <p className="text-sm text-amber-800 flex-1">
-            <b>{data.pending_count}</b> transaksi menunggu tinjauan
-            {data.needs_correction_count > 0 && <> dan <b>{data.needs_correction_count}</b> perlu perbaikan</>}. Transaksi ini belum masuk laporan resmi.
-          </p>
-          <Button variant="outline" size="sm" className="rounded-xl" data-testid="review-shortcut"
-            onClick={() => navigate(adminMode ? "/admin/transaksi" : "/transaksi")}>Lihat</Button>
-        </div>
-      )}
-
-      {canAdd && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <Button data-testid="quick-add-income" onClick={() => setDialog({ open: true, type: "income" })}
-            className="h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold shadow-sm hover:shadow-md transition-all">
-            <Plus className="h-4 w-4 mr-1.5" /> Uang Masuk
-          </Button>
-          <Button data-testid="quick-add-expense" onClick={() => setDialog({ open: true, type: "expense" })}
-            className="h-14 rounded-2xl bg-red-500 hover:bg-red-600 text-white text-sm font-semibold shadow-sm hover:shadow-md transition-all">
-            <Plus className="h-4 w-4 mr-1.5" /> Uang Keluar
-          </Button>
-          <Button variant="outline" data-testid="quick-view-transactions"
-            onClick={() => navigate(adminMode ? `/admin/umkm/${bid}?tab=transaksi` : "/transaksi")}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <Button data-testid="quick-add-income" onClick={() => setDialog({ open: true, type: "income" })}
+          className="h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold shadow-sm hover:shadow-md transition-all">
+          <Plus className="h-4 w-4 mr-1.5" /> Uang Masuk
+        </Button>
+        <Button data-testid="quick-add-expense" onClick={() => setDialog({ open: true, type: "expense" })}
+          className="h-14 rounded-2xl bg-red-500 hover:bg-red-600 text-white text-sm font-semibold shadow-sm hover:shadow-md transition-all">
+          <Plus className="h-4 w-4 mr-1.5" /> Uang Keluar
+        </Button>
+        <Button variant="outline" data-testid="quick-view-transactions"
+          onClick={() => navigate(`/umkm/${bid}?tab=transaksi`)}
+          className="h-14 rounded-2xl bg-white text-sm font-semibold">
+          <Receipt className="h-4 w-4 mr-1.5" /> Catatan Transaksi
+        </Button>
+        {onExport ? (
+          <Button variant="outline" data-testid="quick-export-excel" onClick={onExport} disabled={exporting}
             className="h-14 rounded-2xl bg-white text-sm font-semibold">
-            <Receipt className="h-4 w-4 mr-1.5" /> Catatan Transaksi
+            <FileSpreadsheet className="h-4 w-4 mr-1.5 text-emerald-600" /> {exporting ? "Menyiapkan..." : "Export Excel"}
           </Button>
+        ) : (
           <Button variant="outline" data-testid="quick-view-reports"
-            onClick={() => navigate(adminMode ? `/admin/umkm/${bid}?tab=laporan` : "/laporan")}
+            onClick={() => navigate(`/umkm/${bid}?tab=laporan`)}
             className="h-14 rounded-2xl bg-white text-sm font-semibold">
             <FileBarChart2 className="h-4 w-4 mr-1.5" /> Laporan
           </Button>
-        </div>
-      )}
+        )}
+      </div>
 
       <div className="grid lg:grid-cols-2 gap-5">
         <div className="card-soft p-5 sm:p-6" data-testid="chart-income-expense">
           <p className="font-semibold text-slate-800">Uang Masuk vs Uang Keluar</p>
-          <p className="text-xs text-slate-500 mb-4">6 bulan terakhir (transaksi disetujui)</p>
+          <p className="text-xs text-slate-500 mb-4">6 bulan terakhir</p>
           <ResponsiveContainer width="100%" height={240}>
             <BarChart data={data.monthly} barGap={4}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
@@ -157,17 +150,14 @@ export const DashboardView = ({ businessId, canAdd = true, adminMode = false }) 
             <p className="text-xs text-slate-500">8 catatan terakhir</p>
           </div>
           <div className="divide-y divide-slate-100" data-testid="recent-transactions">
-            {data.recent.length === 0 && <EmptyState title="Belum ada transaksi" desc="Mulai catat uang masuk atau keluar Anda." />}
+            {data.recent.length === 0 && <EmptyState title="Belum ada transaksi" desc="Mulai catat uang masuk atau keluar." />}
             {data.recent.map((t) => (
               <div key={t.id} className="px-5 sm:px-6 py-3.5 flex items-center gap-3">
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold text-slate-800 truncate">{t.description || t.category}</p>
                   <p className="text-xs text-slate-500">{formatDate(t.date)} · {t.category} · {t.payment_method}</p>
                 </div>
-                <div className="text-right shrink-0">
-                  <Amount value={t.amount} type={t.type} className="text-sm" />
-                  <div className="mt-1"><StatusBadge status={t.status} /></div>
-                </div>
+                <Amount value={t.amount} type={t.type} className="text-sm shrink-0" />
               </div>
             ))}
           </div>

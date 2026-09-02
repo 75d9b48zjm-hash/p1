@@ -27,6 +27,7 @@ from auth import (router as auth_router, get_current_user, require_admin, assert
 from seed import seed_demo
 from storage import init_storage, put_object, get_object, APP_NAME, MIME_TYPES
 import exports
+import excel_export
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -201,19 +202,9 @@ async def list_businesses(user: dict = Depends(require_admin)):
 
 
 @api.post("/businesses")
-async def create_business_endpoint(body: BusinessCreateInput, user: dict = Depends(require_admin)):
-    email = body.user_email.lower().strip()
-    if await db.users.find_one({"email": email}):
-        raise HTTPException(status_code=400, detail="Email pengguna sudah terdaftar")
-    bid = await create_business(body.name, body.owner_name, body.business_type, body.phone, body.email or email, body.address)
-    await db.businesses.update_one({"_id": bid}, {"$set": {"opening_balance": body.opening_balance}})
-    uid = str(uuid.uuid4())
-    await db.users.insert_one({
-        "_id": uid, "email": email, "password_hash": hash_password(body.user_password),
-        "name": body.owner_name, "role": "msme", "business_id": bid, "phone": body.phone,
-        "can_manage_categories": True, "notify_email": True, "notify_app": True,
-        "is_demo": False, "created_at": now_iso(),
-    })
+async def create_business_endpoint(body: BusinessInput, user: dict = Depends(get_current_user)):
+    bid = await create_business(body.name, body.owner_name, body.business_type, body.phone, body.email, body.address)
+    await db.businesses.update_one({"_id": bid}, {"$set": {"opening_balance": body.opening_balance, "logo_url": body.logo_url}})
     await log_audit(user, "business_created", bid, "business", bid, None, body.name, f"UMKM dibuat: {body.name}")
     b = await db.businesses.find_one({"_id": bid})
     return clean_business(b)
@@ -241,6 +232,17 @@ async def update_business(business_id: str, body: BusinessInput, user: dict = De
     await log_audit(user, "business_updated", business_id, "business", business_id, old.get("name"), body.name, "Profil usaha diperbarui")
     b = await db.businesses.find_one({"_id": business_id})
     return clean_business(b)
+
+
+@api.delete("/businesses/{business_id}")
+async def delete_business(business_id: str, user: dict = Depends(get_current_user)):
+    b = await db.businesses.find_one({"_id": business_id, "is_deleted": False})
+    if not b:
+        raise HTTPException(status_code=404, detail="Usaha tidak ditemukan")
+    await db.businesses.update_one({"_id": business_id}, {"$set": {"is_deleted": True}})
+    await db.transactions.update_many({"business_id": business_id}, {"$set": {"is_deleted": True}})
+    await log_audit(user, "business_deleted", business_id, "business", business_id, b.get("name"), None, f"UMKM dihapus: {b.get('name')}")
+    return {"ok": True}
 
 
 # ---------------- categories ----------------
@@ -520,21 +522,7 @@ async def upload_receipt(business_id: Optional[str] = None, file: UploadFile = F
 
 
 @api.get("/receipts/{receipt_id}")
-async def download_receipt(receipt_id: str, authorization: Optional[str] = Header(None),
-                           auth_token: Optional[str] = Query(None)):
-    import jwt as pyjwt
-    token = auth_token
-    if authorization and authorization.startswith("Bearer "):
-        token = authorization[7:]
-    if not token:
-        raise HTTPException(status_code=401, detail="Belum masuk")
-    try:
-        payload = pyjwt.decode(token, os.environ["JWT_SECRET"], algorithms=["HS256"])
-    except Exception:
-        raise HTTPException(status_code=401, detail="Token tidak valid")
-    user = await db.users.find_one({"_id": payload["sub"]})
-    if not user:
-        raise HTTPException(status_code=401, detail="Pengguna tidak ditemukan")
+async def download_receipt(receipt_id: str, user: dict = Depends(get_current_user)):
     rec = await db.receipts.find_one({"_id": receipt_id, "is_deleted": False})
     if not rec:
         raise HTTPException(status_code=404, detail="Bukti tidak ditemukan")
@@ -802,6 +790,36 @@ async def export_report(kind: str, format: str = "csv", business_id: Optional[st
                              headers={"Content-Disposition": f'attachment; filename="{filename}"'})
 
 
+@api.get("/businesses/{business_id}/export")
+async def export_business_excel(business_id: str, start_date: Optional[str] = None,
+                                end_date: Optional[str] = None, user: dict = Depends(get_current_user)):
+    assert_business_access(user, business_id)
+    b = await db.businesses.find_one({"_id": business_id, "is_deleted": False})
+    if not b:
+        raise HTTPException(status_code=404, detail="Usaha tidak ditemukan")
+    ms, me = month_bounds()
+    start, end = start_date or ms, end_date or me
+    report = await build_report(business_id, start, end)
+    today = datetime.now(timezone.utc).date()
+    monthly = []
+    for k in range(5, -1, -1):
+        first = shift_month(today.replace(day=1), -k)
+        last = first.replace(day=monthrange(first.year, first.month)[1])
+        i, e, _ = await approved_totals(business_id, first.isoformat(), last.isoformat())
+        monthly.append({"month": first.strftime("%b %Y"), "income": i, "expense": e, "profit": i - e})
+    rows = await db.transactions.find(
+        {"business_id": business_id, "is_deleted": False, "status": "approved",
+         "date": {"$gte": start, "$lte": end}}
+    ).sort("date", 1).to_list(5000)
+    content = await run_in_threadpool(
+        excel_export.build_business_excel, clean_business(b), report, monthly, rows, f"{start} s/d {end}")
+    fname = f"Laporan-{b['name'].replace(' ', '_')}-{start}.xlsx"
+    return StreamingResponse(
+        iter([content]),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{fname}"'})
+
+
 # ---------------- audit + notifications ----------------
 @api.get("/audit-logs")
 async def audit_logs(business_id: Optional[str] = None, limit: int = 100, user: dict = Depends(get_current_user)):
@@ -912,6 +930,8 @@ async def on_startup():
     await db.audit_logs.create_index([("business_id", 1), ("created_at", -1)])
     await db.password_reset_tokens.create_index("expires_at", expireAfterSeconds=0)
     await seed_admin()
+    await db.transactions.update_many(
+        {"status": {"$ne": "approved"}, "is_deleted": False}, {"$set": {"status": "approved"}})
     if os.environ.get("SEED_DEMO") == "true":
         try:
             await seed_demo()

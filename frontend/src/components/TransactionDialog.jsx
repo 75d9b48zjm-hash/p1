@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Upload, Loader2, ArrowUpRight, ArrowDownRight, FileCheck2, ScanLine, Zap, Settings2, Sparkles } from "lucide-react";
+import { Upload, Loader2, ArrowUpRight, ArrowDownRight, FileCheck2, ScanLine, Sparkles } from "lucide-react";
 import api, { apiError } from "@/lib/api";
 import { formatThousand, digitsOnly, todayStr, PAYMENT_METHODS } from "@/lib/format";
-import { useAuth } from "@/context/AuthContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,10 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 const CHIPS = [10000, 50000, 100000, 500000, 1000000];
 
 export const TransactionDialog = ({ open, onOpenChange, businessId, transaction, defaultType = "income", onSaved }) => {
-  const { user } = useAuth();
   const editing = Boolean(transaction);
-  const isMsme = user?.role === "msme";
-  const [quickMode, setQuickMode] = useState(isMsme && !editing);
   const [type, setType] = useState(defaultType);
   const [form, setForm] = useState({ date: todayStr(), category: "", amount: "", description: "", payment_method: "Tunai" });
   const [receiptId, setReceiptId] = useState(null);
@@ -33,7 +29,6 @@ export const TransactionDialog = ({ open, onOpenChange, businessId, transaction,
   useEffect(() => {
     if (!open) return;
     if (transaction) {
-      setQuickMode(false);
       setType(transaction.type);
       setForm({
         date: transaction.date,
@@ -45,14 +40,13 @@ export const TransactionDialog = ({ open, onOpenChange, businessId, transaction,
       setReceiptId(transaction.receipt_id || null);
       setReceiptName(transaction.receipt_id ? "Bukti terlampir" : "");
     } else {
-      setQuickMode(isMsme);
       setType(defaultType);
       setForm({ date: todayStr(), category: "", amount: "", description: "", payment_method: "Tunai" });
       setReceiptId(null);
       setReceiptName("");
       setSuggestion(null);
     }
-  }, [open, transaction, defaultType, isMsme]);
+  }, [open, transaction, defaultType]);
 
   useEffect(() => {
     if (!open || !businessId) return;
@@ -126,7 +120,6 @@ export const TransactionDialog = ({ open, onOpenChange, businessId, transaction,
     const amount = Number(digitsOnly(form.amount));
     if (!amount || amount <= 0) return toast.error("Nominal harus lebih dari 0");
     if (!form.date) return toast.error("Tanggal wajib diisi");
-    if (!quickMode && !form.category) return toast.error("Pilih kategori terlebih dahulu");
     setSaving(true);
     try {
       const payload = {
@@ -136,18 +129,12 @@ export const TransactionDialog = ({ open, onOpenChange, businessId, transaction,
         description: form.description,
         business_id: businessId,
         receipt_id: receiptId,
-        // Mode Cepat: kirim kategori jika sudah menerima saran, jika tidak biarkan backend isi "Belum Dikategorikan"
-        category: form.category || (quickMode ? "" : form.category),
-        payment_method: quickMode ? "Tunai" : form.payment_method,
+        category: form.category || "",
+        payment_method: form.payment_method,
       };
       if (editing) await api.put(`/transactions/${transaction.id}`, payload);
       else await api.post("/transactions", payload);
-      const msg = editing
-        ? "Transaksi berhasil diperbarui"
-        : quickMode
-          ? "Tercatat! Pembukuan akan mengelompokkan kategorinya."
-          : "Transaksi tersimpan, menunggu tinjauan pembukuan";
-      toast.success(msg);
+      toast.success(editing ? "Transaksi berhasil diperbarui" : "Transaksi tercatat");
       onOpenChange(false);
       onSaved?.();
     } catch (e) {
@@ -160,26 +147,9 @@ export const TransactionDialog = ({ open, onOpenChange, businessId, transaction,
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg rounded-2xl max-h-[92vh] overflow-y-auto" data-testid="transaction-dialog">
         <DialogHeader>
-          <div className="flex items-center justify-between gap-3">
-            <DialogTitle className="text-lg">
-              {editing ? "Ubah Transaksi" : quickMode ? "Catat Cepat" : "Catat Transaksi"}
-            </DialogTitle>
-            {!editing && isMsme && (
-              <button
-                data-testid="toggle-mode-button"
-                onClick={() => setQuickMode((q) => !q)}
-                className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full transition-all ${
-                  quickMode ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                }`}
-              >
-                {quickMode ? <><Zap className="h-3.5 w-3.5" /> Mode Cepat</> : <><Settings2 className="h-3.5 w-3.5" /> Mode Lengkap</>}
-              </button>
-            )}
-          </div>
+          <DialogTitle className="text-lg">{editing ? "Ubah Transaksi" : "Catat Transaksi"}</DialogTitle>
           <DialogDescription className="text-xs text-slate-500">
-            {quickMode
-              ? "Cukup isi nominal & catatan singkat. Pembukuan akan mengelompokkan kategorinya nanti."
-              : "Isi nominal, tanggal, dan kategori. Unggah foto nota agar terisi otomatis."}
+            Isi nominal, tanggal, dan catatan. Kategori & metode opsional. Unggah foto nota agar nominal terisi otomatis.
           </DialogDescription>
         </DialogHeader>
 
@@ -244,12 +214,6 @@ export const TransactionDialog = ({ open, onOpenChange, businessId, transaction,
                 <Sparkles className="h-3.5 w-3.5" /> Saran kategori: <b>{suggestion}</b> · tap untuk pakai
               </button>
             )}
-            {form.category && quickMode && (
-              <p data-testid="applied-category" className="mt-2 text-xs text-emerald-700">
-                ✓ Kategori: <b>{form.category}</b>
-                <button onClick={() => setForm({ ...form, category: "" })} className="ml-2 text-slate-400 hover:text-slate-600 underline">ganti</button>
-              </p>
-            )}
           </div>
 
           <div>
@@ -258,35 +222,31 @@ export const TransactionDialog = ({ open, onOpenChange, businessId, transaction,
               onChange={(e) => setForm({ ...form, date: e.target.value })} className="mt-1.5 h-11 rounded-xl" />
           </div>
 
-          {!quickMode && (
-            <>
-              <div>
-                <Label>Kategori</Label>
-                <Select value={form.category} onValueChange={(v) => setForm({ ...form, category: v })}>
-                  <SelectTrigger data-testid="category-select" className="mt-1.5 h-11 rounded-xl">
-                    <SelectValue placeholder="Pilih kategori" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {filtered.map((c) => (
-                      <SelectItem key={c.id} value={c.name} data-testid={`category-option-${c.name}`}>{c.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+          <div>
+            <Label>Kategori <span className="text-slate-400 font-normal">(opsional)</span></Label>
+            <Select value={form.category} onValueChange={(v) => setForm({ ...form, category: v })}>
+              <SelectTrigger data-testid="category-select" className="mt-1.5 h-11 rounded-xl">
+                <SelectValue placeholder="Pilih kategori (boleh kosong)" />
+              </SelectTrigger>
+              <SelectContent>
+                {filtered.map((c) => (
+                  <SelectItem key={c.id} value={c.name} data-testid={`category-option-${c.name}`}>{c.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-              <div>
-                <Label>Metode Pembayaran</Label>
-                <Select value={form.payment_method} onValueChange={(v) => setForm({ ...form, payment_method: v })}>
-                  <SelectTrigger data-testid="payment-select" className="mt-1.5 h-11 rounded-xl">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PAYMENT_METHODS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            </>
-          )}
+          <div>
+            <Label>Metode Pembayaran</Label>
+            <Select value={form.payment_method} onValueChange={(v) => setForm({ ...form, payment_method: v })}>
+              <SelectTrigger data-testid="payment-select" className="mt-1.5 h-11 rounded-xl">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PAYMENT_METHODS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
 
           <div>
             <Label>Bukti / Nota (JPG, PNG, PDF) — opsional</Label>

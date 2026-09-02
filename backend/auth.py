@@ -66,24 +66,13 @@ def public_user(user: dict) -> dict:
     }
 
 
-async def get_current_user(request: Request) -> dict:
-    token = request.cookies.get("access_token")
-    auth_header = request.headers.get("Authorization", "")
-    if auth_header.startswith("Bearer "):
-        token = auth_header[7:]
-    if not token:
-        raise HTTPException(status_code=401, detail="Belum masuk")
-    try:
-        payload = jwt.decode(token, get_jwt_secret(), algorithms=[JWT_ALGORITHM])
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Sesi berakhir, silakan masuk lagi")
-    except jwt.InvalidTokenError:
-        raise HTTPException(status_code=401, detail="Token tidak valid")
-    if payload.get("type") != "access":
-        raise HTTPException(status_code=401, detail="Token tidak valid")
-    user = await db.users.find_one({"_id": payload["sub"]})
+async def get_current_user() -> dict:
+    """Mode alat pribadi tanpa login: selalu bekerja sebagai satu akun pembukuan (admin)."""
+    email = os.environ["ADMIN_EMAIL"].lower()
+    user = await db.users.find_one({"email": email, "role": "admin"})
     if not user:
-        raise HTTPException(status_code=401, detail="Pengguna tidak ditemukan")
+        await seed_admin()
+        user = await db.users.find_one({"email": email, "role": "admin"})
     return user
 
 

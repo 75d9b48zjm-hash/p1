@@ -1,35 +1,30 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import {
-  Search, Plus, Pencil, Trash2, Check, AlertTriangle, Paperclip, Download, FileText, Filter, X,
-} from "lucide-react";
-import api, { apiError, API } from "@/lib/api";
-import { rupiah, formatDate, formatDateTime, STATUS_LABELS, monthRange } from "@/lib/format";
-import { StatusBadge, TypeBadge, Amount, Loader, EmptyState } from "@/components/Bits";
+import { Search, Plus, Pencil, Trash2, Paperclip, Download, FileText, Filter, X } from "lucide-react";
+import api, { apiError, API, downloadFile } from "@/lib/api";
+import { rupiah, formatDate, formatDateTime, monthRange } from "@/lib/format";
+import { TypeBadge, Amount, Loader, EmptyState } from "@/components/Bits";
 import { TransactionDialog } from "@/components/TransactionDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { downloadFile } from "@/lib/api";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const ALL = "all";
 
-export const TransactionsView = ({ businessId, isAdmin = false, defaultStatus = ALL, showBusinessColumn = false }) => {
+export const TransactionsView = ({ businessId }) => {
   const [rows, setRows] = useState(null);
   const [categories, setCategories] = useState([]);
   const [filters, setFilters] = useState({
-    search: "", type: ALL, category: ALL, status: defaultStatus, start_date: "", end_date: "", sort: "newest",
+    search: "", type: ALL, category: ALL, start_date: "", end_date: "", sort: "newest",
   });
   const [dialog, setDialog] = useState({ open: false, tx: null });
   const [del, setDel] = useState(null);
-  const [reject, setReject] = useState({ open: false, tx: null, note: "" });
   const [detail, setDetail] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
 
@@ -47,14 +42,6 @@ export const TransactionsView = ({ businessId, isAdmin = false, defaultStatus = 
     if (!businessId) return;
     api.get("/categories", { params: { business_id: businessId } }).then(({ data }) => setCategories(data)).catch(() => {});
   }, [businessId]);
-
-  const review = async (tx, status, note) => {
-    try {
-      await api.post(`/transactions/${tx.id}/review`, { status, note: note || null });
-      toast.success(status === "approved" ? "Transaksi disetujui" : "Transaksi ditandai perlu perbaikan");
-      load();
-    } catch (e) { toast.error(apiError(e)); }
-  };
 
   const doDelete = async () => {
     try {
@@ -74,10 +61,7 @@ export const TransactionsView = ({ businessId, isAdmin = false, defaultStatus = 
     };
   }, [rows]);
 
-  const openReceipt = (id) => {
-    const token = localStorage.getItem("kasumkm_token");
-    window.open(`${API}/receipts/${id}?auth_token=${token}`, "_blank");
-  };
+  const openReceipt = (id) => window.open(`${API}/receipts/${id}`, "_blank");
 
   const exportIt = async (format) => {
     const { start, end } = monthRange();
@@ -90,7 +74,7 @@ export const TransactionsView = ({ businessId, isAdmin = false, defaultStatus = 
     } catch (e) { toast.error(apiError(e)); }
   };
 
-  const clearFilters = () => setFilters({ search: "", type: ALL, category: ALL, status: ALL, start_date: "", end_date: "", sort: "newest" });
+  const clearFilters = () => setFilters({ search: "", type: ALL, category: ALL, start_date: "", end_date: "", sort: "newest" });
 
   return (
     <div className="space-y-5">
@@ -121,7 +105,7 @@ export const TransactionsView = ({ businessId, isAdmin = false, defaultStatus = 
         </div>
 
         {showFilters && (
-          <div className="grid sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-1">
+          <div className="grid sm:grid-cols-3 lg:grid-cols-5 gap-3 pt-1">
             <div>
               <Label className="text-xs">Jenis</Label>
               <Select value={filters.type} onValueChange={(v) => setFilters({ ...filters, type: v })}>
@@ -130,16 +114,6 @@ export const TransactionsView = ({ businessId, isAdmin = false, defaultStatus = 
                   <SelectItem value={ALL}>Semua</SelectItem>
                   <SelectItem value="income">Uang Masuk</SelectItem>
                   <SelectItem value="expense">Uang Keluar</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label className="text-xs">Status</Label>
-              <Select value={filters.status} onValueChange={(v) => setFilters({ ...filters, status: v })}>
-                <SelectTrigger data-testid="filter-status" className="mt-1 h-10 rounded-xl"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={ALL}>Semua</SelectItem>
-                  {Object.entries(STATUS_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -173,7 +147,7 @@ export const TransactionsView = ({ businessId, isAdmin = false, defaultStatus = 
                 </SelectContent>
               </Select>
             </div>
-            <div className="sm:col-span-3 lg:col-span-6">
+            <div className="sm:col-span-3 lg:col-span-5">
               <Button variant="ghost" size="sm" onClick={clearFilters} data-testid="clear-filters" className="text-slate-500">
                 <X className="h-3.5 w-3.5 mr-1" /> Bersihkan filter
               </Button>
@@ -198,12 +172,10 @@ export const TransactionsView = ({ businessId, isAdmin = false, defaultStatus = 
               <thead>
                 <tr className="bg-slate-50/80 text-left text-xs uppercase tracking-wide text-slate-500">
                   <th className="px-5 py-3 font-semibold">Tanggal</th>
-                  {showBusinessColumn && <th className="px-5 py-3 font-semibold">Usaha</th>}
                   <th className="px-5 py-3 font-semibold">Deskripsi</th>
                   <th className="px-5 py-3 font-semibold">Kategori</th>
                   <th className="px-5 py-3 font-semibold">Jenis</th>
                   <th className="px-5 py-3 font-semibold text-right">Nominal</th>
-                  <th className="px-5 py-3 font-semibold">Status</th>
                   <th className="px-5 py-3 font-semibold text-right">Aksi</th>
                 </tr>
               </thead>
@@ -211,7 +183,6 @@ export const TransactionsView = ({ businessId, isAdmin = false, defaultStatus = 
                 {rows.map((t) => (
                   <tr key={t.id} className="hover:bg-slate-50/60 transition-colors" data-testid={`transaction-row-${t.id}`}>
                     <td className="px-5 py-3.5 whitespace-nowrap text-slate-600">{formatDate(t.date)}</td>
-                    {showBusinessColumn && <td className="px-5 py-3.5 text-slate-700 font-medium">{t.business_name}</td>}
                     <td className="px-5 py-3.5">
                       <button className="text-left font-medium text-slate-800 hover:text-emerald-600" data-testid={`detail-${t.id}`} onClick={() => setDetail(t)}>
                         {t.description || "-"}
@@ -221,21 +192,8 @@ export const TransactionsView = ({ businessId, isAdmin = false, defaultStatus = 
                     <td className="px-5 py-3.5 text-slate-600">{t.category}</td>
                     <td className="px-5 py-3.5"><TypeBadge type={t.type} /></td>
                     <td className="px-5 py-3.5 text-right"><Amount value={t.amount} type={t.type} /></td>
-                    <td className="px-5 py-3.5"><StatusBadge status={t.status} /></td>
                     <td className="px-5 py-3.5">
                       <div className="flex items-center justify-end gap-1">
-                        {isAdmin && t.status !== "approved" && (
-                          <Button size="icon" variant="ghost" title="Setujui" data-testid={`approve-${t.id}`}
-                            className="h-8 w-8 text-emerald-600 hover:bg-emerald-50" onClick={() => review(t, "approved")}>
-                            <Check className="h-4 w-4" />
-                          </Button>
-                        )}
-                        {isAdmin && t.status !== "needs_correction" && (
-                          <Button size="icon" variant="ghost" title="Perlu perbaikan" data-testid={`reject-${t.id}`}
-                            className="h-8 w-8 text-amber-600 hover:bg-amber-50" onClick={() => setReject({ open: true, tx: t, note: "" })}>
-                            <AlertTriangle className="h-4 w-4" />
-                          </Button>
-                        )}
                         <Button size="icon" variant="ghost" title="Ubah" data-testid={`edit-${t.id}`}
                           className="h-8 w-8 text-slate-500 hover:bg-slate-100" onClick={() => setDialog({ open: true, tx: t })}>
                           <Pencil className="h-4 w-4" />
@@ -257,27 +215,21 @@ export const TransactionsView = ({ businessId, isAdmin = false, defaultStatus = 
             {rows.map((t) => (
               <div key={t.id} className="card-soft p-4" data-testid={`transaction-card-${t.id}`}>
                 <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
+                  <button className="min-w-0 text-left" data-testid={`detail-m-${t.id}`} onClick={() => setDetail(t)}>
                     <p className="font-semibold text-slate-800 truncate">{t.description || t.category}</p>
                     <p className="text-xs text-slate-500 mt-0.5">{formatDate(t.date)} · {t.category}</p>
-                    {showBusinessColumn && <p className="text-xs text-emerald-700 font-medium mt-0.5">{t.business_name}</p>}
-                  </div>
+                  </button>
                   <Amount value={t.amount} type={t.type} className="text-sm shrink-0" />
                 </div>
                 <div className="flex items-center justify-between gap-2 mt-3">
-                  <StatusBadge status={t.status} />
+                  <TypeBadge type={t.type} />
                   <div className="flex gap-1">
-                    {isAdmin && t.status !== "approved" && (
-                      <Button size="sm" variant="outline" className="rounded-lg h-8 text-emerald-600" data-testid={`approve-m-${t.id}`}
-                        onClick={() => review(t, "approved")}><Check className="h-3.5 w-3.5" /></Button>
-                    )}
                     <Button size="sm" variant="outline" className="rounded-lg h-8" data-testid={`edit-m-${t.id}`}
                       onClick={() => setDialog({ open: true, tx: t })}><Pencil className="h-3.5 w-3.5" /></Button>
                     <Button size="sm" variant="outline" className="rounded-lg h-8 text-red-500" data-testid={`delete-m-${t.id}`}
                       onClick={() => setDel(t)}><Trash2 className="h-3.5 w-3.5" /></Button>
                   </div>
                 </div>
-                {t.review_note && <p className="mt-2 text-xs text-amber-700 bg-amber-50 rounded-lg p-2">Catatan: {t.review_note}</p>}
               </div>
             ))}
           </div>
@@ -292,7 +244,7 @@ export const TransactionsView = ({ businessId, isAdmin = false, defaultStatus = 
           <AlertDialogHeader>
             <AlertDialogTitle>Hapus transaksi ini?</AlertDialogTitle>
             <AlertDialogDescription>
-              Yakin ingin menghapus transaksi {del?.category} sebesar {rupiah(del?.amount)}? Catatan tetap tersimpan di log audit.
+              Yakin ingin menghapus transaksi {del?.category} sebesar {rupiah(del?.amount)}?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -301,22 +253,6 @@ export const TransactionsView = ({ businessId, isAdmin = false, defaultStatus = 
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      <Dialog open={reject.open} onOpenChange={(v) => setReject({ ...reject, open: v })}>
-        <DialogContent className="rounded-2xl sm:max-w-md">
-          <DialogHeader><DialogTitle>Minta perbaikan</DialogTitle></DialogHeader>
-          <Label>Catatan untuk pemilik usaha</Label>
-          <Textarea data-testid="reject-note" rows={3} value={reject.note} className="rounded-xl"
-            onChange={(e) => setReject({ ...reject, note: e.target.value })} placeholder="Contoh: mohon lampirkan bukti nota" />
-          <DialogFooter>
-            <Button variant="outline" className="rounded-xl" onClick={() => setReject({ open: false, tx: null, note: "" })}>Batal</Button>
-            <Button className="rounded-xl bg-amber-500 hover:bg-amber-600 text-white" data-testid="confirm-reject"
-              onClick={async () => { await review(reject.tx, "needs_correction", reject.note); setReject({ open: false, tx: null, note: "" }); }}>
-              Kirim
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       <Dialog open={Boolean(detail)} onOpenChange={(v) => !v && setDetail(null)}>
         <DialogContent className="rounded-2xl sm:max-w-md" data-testid="transaction-detail">
@@ -330,16 +266,13 @@ export const TransactionsView = ({ businessId, isAdmin = false, defaultStatus = 
                 ["Nominal", rupiah(detail.amount)],
                 ["Metode", detail.payment_method],
                 ["Deskripsi", detail.description || "-"],
-                ["Status", STATUS_LABELS[detail.status]],
-                ["Dibuat oleh", `${detail.created_by_name || "-"} · ${formatDateTime(detail.created_at)}`],
-                ["Ditinjau oleh", detail.reviewed_by_name ? `${detail.reviewed_by_name} · ${formatDateTime(detail.reviewed_at)}` : "-"],
+                ["Dicatat", formatDateTime(detail.created_at)],
               ].map(([k, v]) => (
                 <div key={k} className="flex justify-between gap-4 border-b border-slate-100 pb-2">
                   <span className="text-slate-500">{k}</span>
                   <span className="font-medium text-slate-800 text-right">{v}</span>
                 </div>
               ))}
-              {detail.review_note && <p className="text-xs text-amber-700 bg-amber-50 rounded-lg p-2">Catatan: {detail.review_note}</p>}
               {detail.receipt_id && (
                 <Button variant="outline" className="rounded-xl w-full" data-testid="view-receipt" onClick={() => openReceipt(detail.receipt_id)}>
                   <Paperclip className="h-4 w-4 mr-1.5" /> Lihat bukti transaksi

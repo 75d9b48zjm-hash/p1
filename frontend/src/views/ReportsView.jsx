@@ -125,7 +125,7 @@ export const ReportsView = ({ businessId }) => {
           </div>
         )}
         <p className="text-xs text-slate-500 mt-3">
-          Periode: <b>{formatDate(range.start)} – {formatDate(range.end)}</b> · Hanya transaksi yang sudah disetujui yang dihitung.
+          Periode: <b>{formatDate(range.start)} – {formatDate(range.end)}</b>
         </p>
       </div>
 
@@ -143,7 +143,7 @@ export const ReportsView = ({ businessId }) => {
             <Row label="Uang Masuk" value={rupiah(report.total_income)} tone="green" />
             <Row label="Uang Keluar" value={rupiah(report.total_expense)} tone="red" />
             <Row label="Laba Bersih" value={rupiah(report.net_profit)} bold tone={report.net_profit >= 0 ? "green" : "red"} />
-            <p className="text-xs text-slate-500 mt-3">Margin keuntungan: <b>{report.profit_margin.toFixed(1)}%</b> · {report.transaction_count} transaksi disetujui</p>
+            <p className="text-xs text-slate-500 mt-3">Margin keuntungan: <b>{report.profit_margin.toFixed(1)}%</b> · {report.transaction_count} transaksi</p>
           </div>
         </TabsContent>
 

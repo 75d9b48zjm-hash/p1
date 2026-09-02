@@ -88,6 +88,17 @@ Tenant isolation at backend, review workflow (pending → approved / needs_corre
 - Verifikasi: LibreOffice headless recalc (`--convert-to xlsx`) → **0 sel error** di 3 file; angka dicek silang (Laba Rugi = Dashboard = Arus Kas = Rp 12.740.000 laba Juni; top5 + Lainnya = total keluar Rp 7.604.000); render PDF→PNG untuk cek visual; endpoint `/api/excel/list` + 4 download → 200 dengan ukuran file terbaru.
 - `Panduan-Pemakaian.md` ditambah bagian **D. Cara baca Dashboard** (tabel arti kartu/panah/lampu/balok/grafik) dan penjelasan sheet Data Grafik.
 
+## Implemented (2026-06, PIVOT: Aplikasi web → Alat Pembukuan Pribadi TANPA LOGIN)
+- Permintaan user: ubah aplikasi web dari SaaS multi-tenant (admin + login UMKM + approval) menjadi **alat kerja pribadi satu orang pembukuan tanpa login**. User input data setiap UMKM sendiri, lalu kirim hasil ke klien via screenshot dashboard atau file Excel.
+- **Tanpa login**: `auth.py` `get_current_user()` sekarang selalu mengembalikan admin ter-seed (ADMIN_EMAIL) tanpa token. Semua endpoint bisa dipanggil tanpa Authorization. Halaman login/register/reset/cockpit dihapus dari frontend.
+- **Tanpa approval**: transaksi yang dibuat langsung berstatus `approved` (jalur admin). Startup migration `db.transactions.update_many(status!=approved → approved)` (idempotent) supaya semua data lama ikut terhitung. UI status/approve/reject/pending banner dihapus.
+- **Manajemen klien**: `POST /api/businesses` kini pakai `BusinessInput` (tanpa akun/email/password); tambah `DELETE /api/businesses/{id}` (soft delete + transaksinya).
+- **Export Excel sederhana**: `GET /api/businesses/{id}/export` → `excel_export.build_business_excel` menghasilkan .xlsx: sheet **Ringkasan** (KPI saldo/masuk/keluar/laba/saldo akhir + BarChart 6 bulan) + sheet **Transaksi** (tabel zebra). Tombol di workspace header (`export-excel-button`) & dashboard (`quick-export-excel`).
+- **Dashboard enak di-screenshot**: header gelap (`dashboard-header`) berisi nama UMKM + periode + Saldo Saat Ini, lalu 4 kartu KPI + 3 grafik.
+- **Frontend baru**: `App.js` hanya 2 route — `/` (AdminBusinesses = daftar klien) & `/umkm/:businessId` (AdminBusinessDetail = workspace 6 tab). `AuthContext` statik (admin, tanpa token). `Layout` nav = Klien UMKM + link Template Excel (buka `/api/excel/list`), tanpa logout/notifikasi. `TransactionDialog` disederhanakan (kategori opsional, tanpa Mode Cepat/msme). `TransactionsView` tanpa kolom status/approve/reject. File mati dihapus: Login/Register/PasswordPages/MsmePages/AdminCockpit/AdminDashboard/AdminPages/AuditLogs/Settings/BusinessPicker.
+- Template Excel offline lama TETAP ada & bisa diunduh (`/api/excel/*`) — tidak diubah.
+- Diuji: iteration_4.json — frontend 100% (12 flow: no-login home, tambah/hapus klien tanpa field login, workspace 6 tab, dashboard+grafik, catat cepat kategori kosong, tabel tanpa status, Export Excel HTTP 200 xlsx). Backend flow diverifikasi via curl (list/dashboard/create/export/delete) + xlsx valid (2 sheet + chart).
+
 ## Backlog
 - P1 (Excel): sheet "Rekap WhatsApp" di `Rekap-Admin.xlsx` — teks laporan harian/bulanan siap copy-paste ke klien
 - P2 (Excel): landing page publik untuk menawarkan jasa pembukuan + tombol unduh template

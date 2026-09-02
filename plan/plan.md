@@ -1,59 +1,59 @@
-# Rencana: Template Pembukuan UMKM berbasis Excel
+# Rencana: Aplikasi KasUMKM — Mode Pemakaian Pribadi (Tanpa Login)
 
-## Ringkas
-Membuat file Excel siap pakai (.xlsx) untuk pembukuan UMKM, menggantikan/melengkapi aplikasi web KasUMKM. Satu file per UMKM, plus satu file rekap untuk Admin. Semua rumus otomatis, tanpa macro (VBA), supaya tetap bisa dibuka di Excel, WPS, LibreOffice, maupun Google Sheets di HP.
+## Tujuan
+Mengubah aplikasi web dari sistem multi-user (admin + UMKM login + persetujuan) menjadi
+alat kerja pribadi untuk satu orang pembukuan. Anda memasukkan data setiap UMKM sendiri,
+lalu hasilnya dikirim ke klien lewat **screenshot dashboard** atau **file Excel**.
 
-Jawaban singkat atas pertanyaan Anda: ya, file Excel-nya bisa dibuat, dan untuk skala 5–20 UMKM cara ini realistis serta biaya Rp 0. Yang hilang: multi-user real-time, foto nota otomatis (OCR), dan pengingat otomatis.
+## Cara pakai yang dituju
+1. Buka aplikasi → langsung masuk (tanpa halaman login).
+2. Pilih/ tambah UMKM (klien) yang mau dikelola.
+3. Input transaksi masuk/keluar untuk UMKM tersebut.
+4. Lihat dashboard yang rapi → screenshot untuk dikirim ke klien.
+5. Atau klik "Export Excel" → dapat file yang bisa dikirim ke klien.
+6. Bulan depan buka lagi UMKM yang sama, data lama masih ada, tinggal tambah.
 
-## Isi file per UMKM (`Pembukuan-<NamaUsaha>.xlsx`)
-1. **Petunjuk** — cara pakai 1 halaman, bahasa sederhana, untuk pemilik usaha.
-2. **Profil Usaha** — nama, pemilik, jenis usaha, no. HP, modal awal, bulan mulai.
-3. **Transaksi** — tabel utama tempat mencatat:
-   - Tanggal | Jenis (Masuk/Keluar) | Nominal | Keterangan | Kategori | Metode Bayar | Status | Catatan Admin
-   - Kolom Kategori & Metode Bayar boleh **dikosongkan** oleh UMKM (meniru "Mode Cepat"); Admin mengisinya belakangan.
-   - Dropdown (data validation) untuk Jenis, Kategori, Metode Bayar, Status — jadi tidak ada salah tulis.
-   - Baris dengan Kategori kosong otomatis diberi warna kuning (conditional formatting) supaya mudah dilihat Admin.
-   - Nominal berformat Rupiah, tanggal berformat dd/mm/yyyy.
-4. **Kategori** — daftar kategori pemasukan & pengeluaran yang bisa diubah sendiri; jadi sumber dropdown.
-5. **Dashboard** — otomatis dari sheet Transaksi:
-   - Total uang masuk, uang keluar, laba/rugi, saldo kas bulan terpilih (ada pilihan bulan/tahun)
-   - Tabel ringkasan per kategori (pengeluaran terbesar)
-   - Grafik batang uang masuk vs keluar per bulan (12 bulan) dan grafik komposisi pengeluaran
-6. **Laba Rugi** — laporan bulanan rapi siap dicetak/di-PDF.
-7. **Arus Kas Harian** — saldo berjalan per hari untuk bulan terpilih.
-8. **Cek Data** — daftar baris yang perlu perhatian: kategori kosong, nominal kosong/negatif, tanggal di luar bulan, duplikat.
+## Keputusan yang sudah disepakati
+- **Tanpa login sama sekali.** Aplikasi terbuka langsung ke halaman kerja.
+- **Data tetap tersimpan** dan bisa dibuka lagi kapan saja (per UMKM, per bulan).
+- **Banyak UMKM** tetap didukung — Anda pegang banyak klien dalam satu aplikasi.
+- **Tidak ada lagi alur persetujuan/kategorisasi** (approval). Transaksi yang Anda input
+  langsung tercatat, tidak perlu di-approve. Halaman "Kategorisasi/Cockpit" dihapus.
+- **Sisi login/akun UMKM dihapus** beserta halaman-halaman terkait login.
+- **Export Excel = versi sederhana**: tabel transaksi + ringkasan angka (saldo, masuk,
+  keluar, laba) + grafik dasar. Bukan template mewah — supaya bisa dibandingkan dengan
+  template Excel offline yang terakhir dibuat.
+- **Dashboard dibuat enak untuk di-screenshot**: kartu ringkasan + grafik yang rapi,
+  nama UMKM dan periode terlihat jelas dalam satu layar.
 
-## File Admin (`Rekap-Admin.xlsx`)
-- Sheet **Salin Data**: tempat menempelkan (paste) transaksi dari tiap file UMKM.
-- Sheet **Rekap**: perbandingan semua UMKM — uang masuk, keluar, laba, jumlah transaksi, jumlah baris belum dikategorikan, tanggal transaksi terakhir (untuk tahu UMKM yang mulai malas mencatat).
-- Sheet **Tagihan Jasa**: hitung biaya jasa pembukuan per UMKM per bulan (tarif bisa diatur).
+## Yang tetap ada
+- Manajemen UMKM (tambah, edit, hapus klien + profil usaha).
+- Input transaksi cepat (masuk/keluar, nominal, kategori opsional, tanggal, catatan).
+- Dashboard per UMKM (saldo, pemasukan, pengeluaran, laba + grafik tren & kategori).
+- Laporan dan analisis per UMKM.
+- Kategori per UMKM (opsional saat input).
+- Template Excel offline yang lama tetap bisa diunduh (tidak diubah).
 
-## Cara kerja harian (menggantikan alur aplikasi)
-- UMKM: buka file di HP (Google Sheets / Excel mobile) atau laptop, catat tanggal + nominal + keterangan saja. Selesai ±10 detik per transaksi.
-- Admin (setelah pulang sekolah): buka file tiap UMKM, filter baris kuning (kategori kosong), isi kategori pakai dropdown, ubah Status jadi "Disetujui". Dashboard langsung ikut berubah.
-- Akhir bulan: cetak sheet Laba Rugi ke PDF, kirim ke pemilik usaha via WhatsApp.
+## Yang dihapus / disederhanakan
+- Halaman login, register, lupa/reset password.
+- Peran "UMKM user" dan seluruh halaman khusus login UMKM.
+- Halaman Kategorisasi/Cockpit dan status "pending/approved" pada transaksi.
+- Audit log yang berkaitan dengan aktivitas multi-user (jika tidak lagi relevan).
 
-## Yang tidak akan dibuat (batasan yang perlu diketahui sebelum setuju)
-- **Tidak ada macro/VBA** — supaya file aman dibuka di HP dan tidak diblokir Excel. Konsekuensinya tidak ada tombol otomatis; semua lewat rumus, dropdown, dan filter.
-- **Tidak ada baca nota otomatis (OCR)**. Foto nota disimpan manual di folder Google Drive; di sheet Transaksi hanya ada kolom tautan/nama file.
-- **Tidak ada pengingat otomatis**. Sheet Rekap Admin menampilkan "sudah X hari tidak mencatat", tapi Admin yang mengirim pesan sendiri.
-- **Multi-user**: satu file diedit satu orang pada satu waktu. Kalau butuh UMKM & Admin mengedit bersamaan, file harus ditaruh di Google Drive dan dibuka sebagai Google Sheets.
-- Grafik Excel akan tampil pada Excel dan LibreOffice; saat file dibuka di Google Sheets tampilan grafik bisa sedikit berbeda.
+## Hal yang perlu Anda ketahui / bisa Anda tantang
+1. **Tanpa login = siapa pun yang punya link aplikasi bisa membuka & mengedit data.**
+   Karena ini alat pribadi, ini sesuai permintaan Anda. Kalau nanti Anda ingin sedikit
+   pengaman, kita bisa tambah 1 kode/PIN sederhana. (Belum dikerjakan sekarang.)
+2. **Data tersimpan di server aplikasi**, bukan sebagai file di komputer Anda. Efeknya
+   sama: data tidak hilang saat browser ditutup dan bisa dibuka lagi kapan saja dari
+   perangkat mana pun lewat link yang sama. Kalau Anda benar-benar ingin data hanya di
+   komputer (tanpa server), beri tahu — pendekatannya beda dan perlu dibahas terpisah.
+3. **Export Excel** dibuat versi sederhana dulu (tabel + ringkasan + grafik). Kalau
+   setelah membandingkan Anda mau tampilan sekeren template offline, itu bisa jadi
+   tahap berikutnya.
 
-## Keputusan yang sudah diasumsikan (silakan koreksi)
-1. **Satu file per UMKM** + satu file rekap Admin — bukan satu file berisi semua UMKM. Alasan: privasi antar UMKM dan file tetap ringan.
-2. Kategori awal disiapkan untuk UMKM dagang/kuliner umum (mis. Penjualan Tunai, Penjualan Online, Bahan Baku, Gaji, Sewa, Listrik & Air, Transport, Kemasan, Lain-lain) dan bisa diubah sendiri.
-3. Format .xlsx tanpa proteksi password; hanya sel rumus yang dikunci agar tidak tertimpa (tanpa password, bisa dibuka kembali).
-4. Data contoh 1 bulan disertakan di file, di sheet terpisah, agar terlihat cara pengisian — dan mudah dihapus.
-5. Bahasa isi file: Bahasa Indonesia.
-6. Disediakan juga panduan singkat (PDF/README) berisi cara menaruh file di Google Drive agar bisa diisi dari HP.
-
-## Nasib aplikasi web yang sudah dibuat
-Aplikasi web tidak dihapus dan tidak diubah dalam rencana ini. Aplikasi tetap ada di preview dan bisa dipakai/dideploy nanti bila diperlukan. Kalau Anda ingin aplikasi web dihentikan atau justru ditambah fitur "unduh template Excel" dari dalam aplikasi, itu perlu dikatakan sekarang.
-
-## Hasil akhir yang diserahkan
-- `Pembukuan-Template.xlsx` (template kosong siap digandakan untuk UMKM baru)
-- `Pembukuan-TokoMaju-Contoh.xlsx` (contoh terisi, untuk belajar)
-- `Rekap-Admin.xlsx`
-- `Panduan-Pemakaian.md` (langkah pemakaian untuk Anda dan untuk pemilik usaha)
-Semua file bisa diunduh dari folder proyek.
+## Hasil akhir yang bisa Anda coba
+- Buka link → langsung bisa tambah UMKM dan input transaksi tanpa login.
+- Dashboard rapi siap di-screenshot.
+- Tombol Export menghasilkan file Excel berisi tabel + ringkasan + grafik.
+- Data UMKM lama tetap ada saat dibuka kembali.
