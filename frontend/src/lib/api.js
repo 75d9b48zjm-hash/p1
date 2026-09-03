@@ -5,7 +5,7 @@ import {
   monthBounds, shiftMonth, monthLabel, approvedTotals, byCategory, dayBefore,
 } from "./store";
 import { rupiah } from "./format";
-import { exportBusinessExcel, transactionsCsv, reportCsv, exportPdf, saveCsv } from "./exporters";
+import { exportBusinessExcel, transactionsCsv, reportCsv, exportPdf, exportMonthlyReportPdf, saveCsv } from "./exporters";
 
 // Kompat: modul lama mengekspor ini. Tidak dipakai lagi pada mode offline.
 export const BACKEND_URL = "";
@@ -519,6 +519,29 @@ export async function downloadFile(path, filename) {
   const { seg, query } = parse(path);
   const params = query;
   const [ms, me] = monthBounds();
+
+  // /businesses/{id}/report-pdf -> Laporan Bulanan lengkap (PDF)
+  if (seg[0] === "businesses" && seg[2] === "report-pdf") {
+    const bid = seg[1];
+    const start = params.start_date || ms;
+    const end = params.end_date || me;
+    const business = await getBusiness(bid);
+    const report = await buildReport(bid, start, end);
+    const txsAll = (await getAll("transactions")).filter((t) => !t.is_deleted);
+    const txs = txsAll
+      .filter((t) => t.business_id === bid && t.status === "approved" && t.date >= start && t.date <= end)
+      .sort((a, z) => (a.date < z.date ? 1 : -1));
+    const today = new Date();
+    const monthly = [];
+    for (let k = 5; k >= 0; k -= 1) {
+      const first = shiftMonth(new Date(today.getFullYear(), today.getMonth(), 1), -k);
+      const [a, b] = monthBounds(first);
+      const { income, expense } = approvedTotals(txsAll, bid, a, b);
+      monthly.push({ month: monthLabel(first), income, expense, profit: income - expense });
+    }
+    exportMonthlyReportPdf(business, report, monthly, txs, `${start} s/d ${end}`, filename);
+    return;
+  }
 
   // /businesses/{id}/export -> Excel
   if (seg[0] === "businesses" && seg[2] === "export") {

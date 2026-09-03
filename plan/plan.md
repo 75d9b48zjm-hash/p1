@@ -1,31 +1,51 @@
-# Perbaikan: "Network Error" saat Tambah UMKM
+# Rekomendasi: Excel atau PDF untuk hasil export?
 
-## Gejala
-- Membuka aplikasi dan melihat daftar klien UMKM berjalan normal.
-- Saat menekan "Tambah UMKM" lalu "Simpan", muncul notifikasi **Network Error** dan data tidak tersimpan.
+## Jawaban singkat
+Keduanya sudah tersedia di aplikasi dan tidak perlu dipilih salah satu. Yang lebih tepat
+adalah **memakai keduanya untuk tujuan berbeda**:
 
-## Penyebab
-Aplikasi dan servernya berkomunikasi dengan pengaturan keamanan browser (CORS) yang tidak cocok:
-server mengizinkan "semua asal" sekaligus "kredensial", dan sisi aplikasi menandai setiap
-permintaan sebagai "membawa kredensial". Browser menolak kombinasi ini pada permintaan
-menyimpan data (POST), sehingga muncul "Network Error". Permintaan menampilkan daftar (GET)
-kebetulan masih lolos, itulah kenapa daftar tetap tampil tetapi menyimpan gagal.
+- **PDF** = untuk **dikirim ke klien**. Ini rekomendasi utama untuk hasil akhir.
+- **Excel** = untuk **kerja Anda sendiri** (mengecek, mengedit, mengolah angka).
 
-Aplikasi versi sekarang berjalan **tanpa login**, jadi tidak butuh kredensial/cookie sama sekali —
-pengaturan tersebut memang tidak diperlukan dan aman untuk dibetulkan.
+## Kenapa PDF lebih baik untuk dikirim ke klien
+- Bisa dibuka di **HP mana pun** tanpa perlu aplikasi Excel — tinggal buka lewat WhatsApp/galeri.
+- Tampilannya **terkunci dan rapi**: angka tidak bisa berubah / tergeser tidak sengaja saat dibuka klien.
+- Terlihat **final dan profesional** (seperti laporan resmi), bukan file kerja.
+- Tata letak selalu sama di semua perangkat.
 
-## Yang akan diperbaiki
-- Menyelaraskan pengaturan komunikasi aplikasi ↔ server agar menyimpan data (Tambah UMKM,
-  catat transaksi, hapus, export, dll.) tidak lagi diblokir browser.
-- Setelah perbaikan: menekan "Tambah UMKM" → "Simpan" akan menambah klien UMKM ke daftar
-  tanpa error. Perbaikan yang sama otomatis menyembuhkan operasi tulis lain yang memakai jalur
-  serupa (misalnya menyimpan transaksi dan menghapus klien).
+## Kenapa Excel tetap dipertahankan
+- Bisa **diedit dan dihitung ulang** kalau Anda perlu koreksi cepat.
+- Cocok kalau **klien ingin mengolah sendiri** angkanya (misal disalin ke file lain).
+- Menyimpan data mentah transaksi dalam bentuk tabel yang bisa difilter.
 
-## Tidak berubah
-- Tampilan, alur, dan fitur lain tetap sama. Tidak ada login yang ditambahkan.
-- Data demo dan template Excel tidak terpengaruh.
+## Ringkasan kapan pakai apa
+| Kebutuhan | Pilih |
+|---|---|
+| Kirim laporan jadi ke klien | **PDF** |
+| Klien mau utak-atik angkanya | Excel |
+| Anda mau edit / koreksi sendiri | Excel |
+| Dibuka di HP tanpa aplikasi Excel | **PDF** |
+| Arsip laporan resmi per bulan | **PDF** |
 
-## Catatan / asumsi
-- Diasumsikan masalah dilaporkan pada aplikasi preview. Perbaikan ini juga berlaku untuk versi
-  yang nanti di-deploy (Vercel + Koyeb) selama alamat frontend didaftarkan di server. Jika Anda
-  melihat error ini pada situs yang sudah di-deploy, sebutkan agar saya sesuaikan juga.
+## Usulan pekerjaan (opsional — butuh persetujuan Anda)
+Karena PDF disarankan sebagai format kiriman ke klien, diusulkan **mempercantik PDF** menjadi
+satu laporan siap kirim dalam sekali klik:
+- Kepala laporan berlogo/nama KasUMKM + nama UMKM + periode.
+- Ringkasan angka (Saldo, Uang Masuk, Uang Keluar, Laba) dalam kartu.
+- Isi: Laba/Rugi, Arus Kas, rincian per kategori, dan daftar transaksi — dalam satu dokumen rapi.
+- (Opsional) Excel juga bisa ditambah grafik batang/donat nanti bila diinginkan.
+
+Saat ini PDF yang ada masih berupa tabel sederhana per jenis laporan (Laba/Rugi, Arus Kas, dst.)
+yang diunduh terpisah. Usulan di atas menjadikannya satu laporan bulanan yang utuh dan menarik.
+
+## Yang perlu Anda putuskan
+1. Setuju **PDF jadi format utama untuk klien**, Excel tetap ada untuk kerja Anda? (ya / tidak)
+2. Mau saya **percantik PDF** menjadi satu laporan bulanan siap kirim seperti usulan di atas
+   sekarang? (ya / nanti saja)
+3. Perlu **grafik di Excel** juga? (ya / tidak / nanti)
+
+## Asumsi
+- Tidak ada fitur yang dihapus: Excel, CSV, dan PDF tetap tersedia.
+- Semua tetap berjalan **offline** di komputer, sesuai arah aplikasi saat ini.
+- Jika Anda hanya ingin jawaban dan belum mau ada perubahan, tidak ada yang dikerjakan —
+  aplikasi tetap seperti sekarang.

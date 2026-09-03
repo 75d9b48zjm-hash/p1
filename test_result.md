@@ -166,3 +166,15 @@ agent_communication:
         -working: true
         -agent: "main"
         -comment: "Ubah aplikasi jadi client-side murni tanpa backend/MongoDB. Data di IndexedDB (localforage). api.js jadi router lokal meniru semua endpoint. Export Excel(exceljs)/CSV/PDF(jspdf) di browser. Hapus Foto Nota+OCR, Template Excel, Google Fonts (ganti @fontsource lokal), skrip analitik Emergent+PostHog. Mulai kosong. Diverifikasi manual via Playwright: tambah UMKM -> persisten setelah reload -> catat transaksi -> saldo/dashboard benar. Lint bersih, compiled successfully. Belum dijalankan lewat auto_frontend_testing_agent (menunggu izin user)."
+
+  - task: "Laporan Bulanan PDF lengkap + grafik batang (1 klik, offline)"
+    implemented: true
+    working: true
+    file: "frontend/src/lib/exporters.js, api.js, pages/AdminBusinessDetail.jsx, views/DashboardView.jsx"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        -working: true
+        -agent: "main"
+        -comment: "PDF laporan bulanan cantik: header berbrand, 4 kartu KPI, grafik batang 6 bulan (jsPDF manual), Laba/Rugi, Arus Kas, rincian kategori, daftar transaksi, footer halaman. Tombol Laporan PDF di header workspace + quick-action dashboard. Diverifikasi manual via Playwright: sukses unduh tanpa error di kedua tombol. Belum dijalankan auto_frontend_testing_agent."

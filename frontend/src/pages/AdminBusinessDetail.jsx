@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { ArrowLeft, FileSpreadsheet } from "lucide-react";
+import { ArrowLeft, FileSpreadsheet, FileText } from "lucide-react";
 import api, { apiError, downloadFile } from "@/lib/api";
 import { Layout } from "@/components/Layout";
 import { Loader } from "@/components/Bits";
@@ -20,6 +20,7 @@ export default function ClientWorkspace() {
   const navigate = useNavigate();
   const [business, setBusiness] = useState(null);
   const [exporting, setExporting] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
   const tab = params.get("tab") || "dashboard";
 
   useEffect(() => {
@@ -35,6 +36,15 @@ export default function ClientWorkspace() {
     setExporting(false);
   };
 
+  const exportReportPdf = async () => {
+    setExportingPdf(true);
+    try {
+      await downloadFile(`/businesses/${businessId}/report-pdf`, `Laporan-${business.name}.pdf`);
+      toast.success("Laporan PDF berhasil diunduh");
+    } catch (e) { toast.error(apiError(e)); }
+    setExportingPdf(false);
+  };
+
   if (business === null) return <Layout title="Memuat..."><Loader /></Layout>;
   if (business === false) return <Layout title="Tidak ditemukan"><p className="text-slate-500">Usaha tidak ditemukan.</p></Layout>;
 
@@ -42,6 +52,9 @@ export default function ClientWorkspace() {
     <Layout title={business.name} subtitle={`${business.business_type} · ${business.owner_name}`}
       action={
         <div className="flex gap-2">
+          <Button className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white" data-testid="export-pdf-report" onClick={exportReportPdf} disabled={exportingPdf}>
+            <FileText className="h-4 w-4 mr-1.5" /> {exportingPdf ? "Menyiapkan..." : "Laporan PDF"}
+          </Button>
           <Button variant="outline" className="rounded-xl" data-testid="export-excel-button" onClick={exportExcel} disabled={exporting}>
             <FileSpreadsheet className="h-4 w-4 mr-1.5 text-emerald-600" /> {exporting ? "Menyiapkan..." : "Export Excel"}
           </Button>
@@ -59,7 +72,7 @@ export default function ClientWorkspace() {
           <TabsTrigger value="kategori" data-testid="btab-kategori" className="rounded-lg">Kategori</TabsTrigger>
           <TabsTrigger value="profil" data-testid="btab-profil" className="rounded-lg">Profil</TabsTrigger>
         </TabsList>
-        <TabsContent value="dashboard"><DashboardView businessId={businessId} onExport={exportExcel} exporting={exporting} /></TabsContent>
+        <TabsContent value="dashboard"><DashboardView businessId={businessId} onExport={exportExcel} exporting={exporting} onExportPdf={exportReportPdf} exportingPdf={exportingPdf} /></TabsContent>
         <TabsContent value="transaksi"><TransactionsView businessId={businessId} /></TabsContent>
         <TabsContent value="laporan"><ReportsView businessId={businessId} /></TabsContent>
         <TabsContent value="insight"><InsightsView businessId={businessId} /></TabsContent>

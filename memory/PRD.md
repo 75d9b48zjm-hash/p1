@@ -121,3 +121,10 @@ Tenant isolation at backend, review workflow (pending → approved / needs_corre
 - Backend FastAPI + MongoDB masih ada di repo tapi TIDAK DIPAKAI lagi oleh aplikasi (akan dilepas saat packaging Electron).
 - Diverifikasi (Playwright manual oleh main agent): tambah UMKM -> persisten setelah reload (IndexedDB) -> buka workspace -> catat pemasukan Rp250.000 -> Saldo Rp1.250.000 (saldo awal 1.000.000 + 250.000), Uang Masuk Rp250.000, grafik tampil. Lint bersih, webpack compiled successfully.
 - Backlog: Tahap 2 = Electron wrapper + electron-builder untuk installer Windows (.exe + shortcut). Opsi: ekspor Excel dengan chart (butuh pendekatan lain karena exceljs tak dukung chart).
+
+## Implemented (2026-07, Laporan Bulanan PDF cantik + grafik)
+- User pilih PDF sebagai format utama kiriman ke klien; minta PDF dipercantik jadi satu laporan lengkap 1 klik, plus grafik simple.
+- `frontend/src/lib/exporters.js` -> `exportMonthlyReportPdf(business, report, monthly, transactions, periodLabel, filename)`: header band navy berbrand KasUMKM + nama UMKM + periode/tanggal, 4 kartu KPI (Saldo Akhir/Masuk/Keluar/Laba), **grafik batang digambar manual dgn jsPDF** (Uang Masuk vs Keluar 6 bulan, hijau/merah + legend), tabel Laba/Rugi (+margin), Arus Kas, rincian per kategori (masuk & keluar dgn %), daftar transaksi, footer nomor halaman di semua halaman. 100% offline (jspdf + jspdf-autotable, tanpa chart lib).
+- `api.js` downloadFile: rute baru `/businesses/{id}/report-pdf` (hitung report+monthly+transaksi periode berjalan) -> exportMonthlyReportPdf.
+- UI: tombol "Laporan PDF" (emerald, utama) di header workspace `AdminBusinessDetail.jsx` (data-testid=export-pdf-report) dan quick-action dashboard `DashboardView.jsx` (data-testid=quick-export-pdf). Export Excel/CSV/PDF-per-jenis lama TETAP ada.
+- Diverifikasi (Playwright): buat UMKM + 3 transaksi -> klik Laporan PDF (dashboard & header) -> "Laporan PDF berhasil diunduh", tanpa error. Lint bersih, compiled successfully.

@@ -237,3 +237,192 @@ export function exportPdf(name, period, report, kind, transactions, filename) {
   });
   doc.save(filename);
 }
+
+// ---------------- Laporan Bulanan lengkap (PDF cantik, 1 klik) ----------------
+const C_NAVY = [15, 23, 42];
+const C_GREEN = [5, 150, 105];
+const C_GREEN2 = [16, 185, 129];
+const C_RED = [220, 38, 38];
+const C_RED2 = [239, 68, 68];
+const C_SLATE = [71, 85, 105];
+const C_MUTED = [148, 163, 184];
+const C_LIGHT = [241, 245, 249];
+const C_ZEBRA = [248, 250, 252];
+const C_WHITE = [255, 255, 255];
+
+export function exportMonthlyReportPdf(business, report, monthly, transactions, periodLabel, filename) {
+  const doc = new jsPDF();
+  const W = doc.internal.pageSize.getWidth();
+  const H = doc.internal.pageSize.getHeight();
+  const M = 14;
+
+  // ---- Header band ----
+  doc.setFillColor(...C_NAVY);
+  doc.rect(0, 0, W, 34, "F");
+  doc.setFillColor(...C_GREEN2);
+  doc.rect(0, 0, 3, 34, "F");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.setTextColor(...C_GREEN2);
+  doc.text("KASUMKM  \u00B7  LAPORAN BULANAN", M, 12);
+  doc.setTextColor(...C_WHITE);
+  doc.setFontSize(19);
+  doc.text(String(business.name || "-"), M, 21);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.setTextColor(203, 213, 225);
+  const meta = [business.business_type, business.owner_name].filter(Boolean).join("  \u00B7  ");
+  if (meta) doc.text(meta, M, 28);
+  doc.setFontSize(9);
+  doc.text(`Periode: ${periodLabel}`, W - M, 12, { align: "right" });
+  doc.text(`Dibuat: ${stamp()}`, W - M, 17, { align: "right" });
+
+  // ---- KPI cards ----
+  let y = 42;
+  const gap = 4;
+  const cw = (W - 2 * M - 3 * gap) / 4;
+  const ch = 22;
+  const kpis = [
+    ["Saldo Akhir", report.closing_balance, C_NAVY],
+    ["Uang Masuk", report.total_income, C_GREEN],
+    ["Uang Keluar", report.total_expense, C_RED],
+    ["Laba Bersih", report.net_profit, report.net_profit >= 0 ? C_GREEN : C_RED],
+  ];
+  kpis.forEach(([label, val, color], i) => {
+    const x = M + i * (cw + gap);
+    doc.setFillColor(...C_LIGHT);
+    doc.roundedRect(x, y, cw, ch, 2, 2, "F");
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(...C_SLATE);
+    doc.text(label, x + 4, y + 7.5);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.setTextColor(...color);
+    doc.text(rupiah(val), x + 4, y + 16);
+  });
+  y += ch + 10;
+
+  const sectionTitle = (t) => {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(...C_NAVY);
+    doc.text(t, M, y);
+    y += 2;
+  };
+
+  // ---- Grafik batang: 6 bulan terakhir ----
+  if (monthly && monthly.length) {
+    sectionTitle("Uang Masuk vs Uang Keluar \u2014 6 bulan terakhir");
+    const chartY = y + 3;
+    const chartW = W - 2 * M;
+    const chartH = 40;
+    const plotBottom = chartY + chartH;
+    // legend (kanan atas area grafik)
+    doc.setFontSize(7);
+    doc.setFillColor(...C_GREEN2);
+    doc.rect(W - M - 46, chartY - 2, 3, 3, "F");
+    doc.setTextColor(...C_SLATE);
+    doc.text("Masuk", W - M - 41, chartY + 0.6);
+    doc.setFillColor(...C_RED2);
+    doc.rect(W - M - 24, chartY - 2, 3, 3, "F");
+    doc.text("Keluar", W - M - 19, chartY + 0.6);
+    // baseline
+    doc.setDrawColor(...[226, 232, 240]);
+    doc.setLineWidth(0.3);
+    doc.line(M, plotBottom, M + chartW, plotBottom);
+    const maxVal = Math.max(1, ...monthly.flatMap((m) => [m.income || 0, m.expense || 0]));
+    const groupW = chartW / monthly.length;
+    const barW = Math.min(9, groupW * 0.26);
+    monthly.forEach((m, i) => {
+      const gx = M + i * groupW + groupW / 2;
+      const hInc = ((m.income || 0) / maxVal) * (chartH - 3);
+      const hExp = ((m.expense || 0) / maxVal) * (chartH - 3);
+      doc.setFillColor(...C_GREEN2);
+      doc.rect(gx - barW - 1, plotBottom - hInc, barW, hInc, "F");
+      doc.setFillColor(...C_RED2);
+      doc.rect(gx + 1, plotBottom - hExp, barW, hExp, "F");
+      doc.setFontSize(7);
+      doc.setTextColor(...C_SLATE);
+      doc.text(String(m.month), gx, plotBottom + 4.5, { align: "center" });
+    });
+    y = plotBottom + 12;
+  }
+
+  const tableHead = (title, head, body) => {
+    sectionTitle(title);
+    autoTable(doc, {
+      startY: y + 1,
+      margin: { left: M, right: M },
+      head: [head],
+      body,
+      styles: { fontSize: 9, cellPadding: 2 },
+      headStyles: { fillColor: C_NAVY, textColor: C_WHITE, halign: "left" },
+      alternateRowStyles: { fillColor: C_ZEBRA },
+      columnStyles: { [head.length - 1]: { halign: "right" } },
+    });
+    y = doc.lastAutoTable.finalY + 9;
+  };
+
+  // ---- Laba / Rugi ----
+  tableHead("Laba / Rugi", ["Keterangan", "Nominal"], [
+    ["Uang Masuk", rupiah(report.total_income)],
+    ["Uang Keluar", rupiah(report.total_expense)],
+    ["Laba Bersih", rupiah(report.net_profit)],
+    ["Margin Keuntungan", `${(report.profit_margin || 0).toFixed(1)}%`],
+  ]);
+
+  // ---- Arus Kas ----
+  tableHead("Arus Kas", ["Keterangan", "Nominal"], [
+    ["Saldo Awal", rupiah(report.opening_balance)],
+    ["Uang Masuk", rupiah(report.total_income)],
+    ["Uang Keluar", rupiah(report.total_expense)],
+    ["Saldo Akhir", rupiah(report.closing_balance)],
+  ]);
+
+  // ---- Rincian per kategori ----
+  if ((report.income_by_category || []).length) {
+    tableHead(
+      "Rincian Uang Masuk per Kategori",
+      ["Kategori", "Nominal", "Persentase"],
+      report.income_by_category.map((c) => [c.name, rupiah(c.amount), `${c.percentage.toFixed(1)}%`])
+    );
+  }
+  if ((report.expense_by_category || []).length) {
+    tableHead(
+      "Rincian Uang Keluar per Kategori",
+      ["Kategori", "Nominal", "Persentase"],
+      report.expense_by_category.map((c) => [c.name, rupiah(c.amount), `${c.percentage.toFixed(1)}%`])
+    );
+  }
+
+  // ---- Daftar transaksi ----
+  sectionTitle(`Daftar Transaksi (${transactions.length})`);
+  autoTable(doc, {
+    startY: y + 1,
+    margin: { left: M, right: M },
+    head: [["Tanggal", "Deskripsi", "Kategori", "Jenis", "Nominal"]],
+    body: (transactions.length ? transactions : [{ empty: true }]).map((t) =>
+      t.empty
+        ? ["-", "Belum ada transaksi pada periode ini", "-", "-", "-"]
+        : [t.date, (t.description || "-").slice(0, 42), t.category, t.type === "income" ? "Masuk" : "Keluar", rupiah(t.amount)]
+    ),
+    styles: { fontSize: 8, cellPadding: 1.8 },
+    headStyles: { fillColor: C_NAVY, textColor: C_WHITE },
+    alternateRowStyles: { fillColor: C_ZEBRA },
+    columnStyles: { 4: { halign: "right" } },
+  });
+
+  // ---- Footer di semua halaman ----
+  const pages = doc.internal.getNumberOfPages();
+  for (let p = 1; p <= pages; p += 1) {
+    doc.setPage(p);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(...C_MUTED);
+    doc.text("Dibuat dengan KasUMKM \u2014 pembukuan UMKM", M, H - 8);
+    doc.text(`Halaman ${p} / ${pages}`, W - M, H - 8, { align: "right" });
+  }
+
+  doc.save(filename);
+}

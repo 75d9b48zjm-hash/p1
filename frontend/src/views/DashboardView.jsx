@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Wallet, TrendingUp, TrendingDown, PiggyBank, Plus, Receipt, FileBarChart2, FileSpreadsheet,
+  Wallet, TrendingUp, TrendingDown, PiggyBank, Plus, Receipt, FileText, FileSpreadsheet,
 } from "lucide-react";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, LineChart, Line, PieChart, Pie, Cell, Legend,
@@ -24,7 +24,7 @@ const chartTooltip = {
 const periodLabel = () =>
   new Date().toLocaleDateString("id-ID", { month: "long", year: "numeric" });
 
-export const DashboardView = ({ businessId, onExport, exporting = false }) => {
+export const DashboardView = ({ businessId, onExport, exporting = false, onExportPdf, exportingPdf = false }) => {
   const [data, setData] = useState(null);
   const [dialog, setDialog] = useState({ open: false, type: "income" });
   const navigate = useNavigate();
@@ -80,7 +80,12 @@ export const DashboardView = ({ businessId, onExport, exporting = false }) => {
           className="h-14 rounded-2xl bg-white text-sm font-semibold">
           <Receipt className="h-4 w-4 mr-1.5" /> Catatan Transaksi
         </Button>
-        {onExport ? (
+        {onExportPdf ? (
+          <Button data-testid="quick-export-pdf" onClick={onExportPdf} disabled={exportingPdf}
+            className="h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold shadow-sm hover:shadow-md transition-all">
+            <FileText className="h-4 w-4 mr-1.5" /> {exportingPdf ? "Menyiapkan..." : "Laporan PDF"}
+          </Button>
+        ) : onExport ? (
           <Button variant="outline" data-testid="quick-export-excel" onClick={onExport} disabled={exporting}
             className="h-14 rounded-2xl bg-white text-sm font-semibold">
             <FileSpreadsheet className="h-4 w-4 mr-1.5 text-emerald-600" /> {exporting ? "Menyiapkan..." : "Export Excel"}
@@ -89,7 +94,7 @@ export const DashboardView = ({ businessId, onExport, exporting = false }) => {
           <Button variant="outline" data-testid="quick-view-reports"
             onClick={() => navigate(`/umkm/${bid}?tab=laporan`)}
             className="h-14 rounded-2xl bg-white text-sm font-semibold">
-            <FileBarChart2 className="h-4 w-4 mr-1.5" /> Laporan
+            <FileText className="h-4 w-4 mr-1.5" /> Laporan
           </Button>
         )}
       </div>
