@@ -912,10 +912,14 @@ async def excel_download(key: str):
 app.include_router(auth_router)
 app.include_router(api)
 
+_cors_origins = os.environ.get("CORS_ORIGINS", "*").split(",")
+# Aplikasi berjalan tanpa login (tanpa cookie/kredensial). Dengan allow_origins="*",
+# allow_credentials HARUS False agar browser menerima respons untuk permintaan tulis (POST/DELETE).
+_allow_credentials = "*" not in _cors_origins
 app.add_middleware(
     CORSMiddleware,
-    allow_credentials=True,
-    allow_origins=os.environ.get("CORS_ORIGINS", "*").split(","),
+    allow_credentials=_allow_credentials,
+    allow_origins=_cors_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )

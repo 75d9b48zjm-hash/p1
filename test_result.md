@@ -101,3 +101,56 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+user_problem_statement: |
+  Saat menekan "Tambah UMKM" lalu "Simpan", muncul "Network Error" dan data tidak tersimpan.
+  Melihat daftar (GET) normal, tetapi menyimpan (POST) gagal. Penyebab: CORS backend memakai
+  allow_credentials=True bersama allow_origins="*" sementara frontend axios memakai
+  withCredentials=true → browser memblokir permintaan tulis.
+
+backend:
+  - task: "CORS fix untuk permintaan tulis (POST/DELETE) — Tambah UMKM"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: "NA"
+        -agent: "main"
+        -comment: "Set allow_credentials=False saat CORS_ORIGINS mengandung '*' agar header Access-Control-Allow-Origin: * diterima browser untuk POST/DELETE. Perlu verifikasi POST /api/businesses (create), GET /api/businesses (list), DELETE /api/businesses/{id}, dan POST /api/transactions tetap berfungsi + header CORS benar."
+        -working: true
+        -agent: "testing"
+        -comment: "✅ CORS fix verified successfully. All 7 tests passed: (1) GET /api/businesses returns 200 with business list, (2) POST /api/businesses creates new UMKM with UUID id and returns 200, (3) New business appears in GET list, (4) POST /api/transactions creates transaction with status='approved' and returns 200, (5) GET /api/dashboard/business shows correct balance (opening_balance 500000 + income 100000 = 600000), (6) DELETE /api/businesses soft-deletes and business no longer appears in list, (7) OPTIONS preflight shows Access-Control-Allow-Origin: * WITHOUT Access-Control-Allow-Credentials: true (correct CORS configuration). Network Error bug is FIXED."
+
+frontend:
+  - task: "Tambah UMKM → Simpan tanpa Network Error"
+    implemented: true
+    working: "NA"
+    file: "frontend/src/lib/api.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        -working: "NA"
+        -agent: "main"
+        -comment: "Set axios withCredentials=false karena app tanpa login. Belum diuji lewat testing agent."
+
+metadata:
+  created_by: "main_agent"
+  version: "1.0"
+  test_sequence: 1
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "CORS fix untuk permintaan tulis (POST/DELETE) — Tambah UMKM"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+    -agent: "main"
+    -message: "Perbaikan CORS diterapkan. Tolong uji backend: POST /api/businesses (buat klien baru dengan body BusinessInput seperti {name, owner_name, business_type, phone, address, opening_balance}), GET /api/businesses, DELETE /api/businesses/{id}, dan POST /api/transactions. Aplikasi tanpa login — tidak perlu Authorization. Pastikan endpoint mengembalikan 200 dan data tersimpan."
+    -agent: "testing"
+    -message: "Backend testing completed successfully. All 7 test scenarios passed with HTTP 200 responses and correct data persistence. CORS headers are correctly configured (allow-origin: * without allow-credentials: true). The 'Network Error saat Tambah UMKM' bug is FIXED. Created test file: /app/backend_test.py for future regression testing."

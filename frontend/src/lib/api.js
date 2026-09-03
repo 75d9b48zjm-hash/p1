@@ -3,7 +3,7 @@ import axios from "axios";
 export const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 export const API = `${BACKEND_URL}/api`;
 
-const api = axios.create({ baseURL: API, withCredentials: true });
+const api = axios.create({ baseURL: API, withCredentials: false });
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("kasumkm_token");
