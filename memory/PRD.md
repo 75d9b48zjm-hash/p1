@@ -105,3 +105,19 @@ Tenant isolation at backend, review workflow (pending → approved / needs_corre
 - P1: notification read state per user, admin ability to disable MSME category management, email delivery for reset link (Resend)
 - P1 (refactor): split server.py (833 lines) into routers (transactions/receipts/reminders/reports)
 - P2: upgrade OCR to LLM Vision (Emergent LLM key) if user wants higher accuracy, AI financial assistant, invoices, inventory, WhatsApp reminders, subscription payments, tax estimates
+
+## Implemented (2026-07, PIVOT Tahap 1: Aplikasi web online -> Alat OFFLINE 100% di komputer)
+- Permintaan user: pakai aplikasi 100% offline, dobel-klik shortcut di komputer Windows, data tersimpan lokal di 1 komputer. Tahap 1 = ubah jadi aplikasi client-side murni + hapus semua fitur online. (Tahap 2 = bungkus Electron .exe, ditunda atas permintaan user.)
+- **Arsitektur baru: TANPA backend/MongoDB.** Semua logika + data pindah ke frontend (React). Data disimpan di IndexedDB via localforage (instance name "kasumkm").
+  - `frontend/src/lib/store.js`: penyimpanan (getAll/setAll businesses|categories|transactions), uuid (crypto.randomUUID), helper hitung (monthBounds, shiftMonth, monthLabel, dayBefore, approvedTotals, byCategory), DEFAULT_CATEGORIES, UNCATEGORIZED.
+  - `frontend/src/lib/api.js` DITULIS ULANG jadi router LOKAL meniru axios ({data}) untuk semua endpoint yang dipakai UI: businesses CRUD, categories CRUD + suggest, transactions CRUD, dashboard/business, reports, insights. Semua logika agregasi backend direplikasi persis. `downloadFile` kini membuat file di browser. Export `apiError`, `BACKEND_URL=""`, `API=""` (kompat).
+  - `frontend/src/lib/exporters.js`: Excel via **exceljs** (sheet Ringkasan KPI + 6 bulan + sheet Transaksi zebra; tanpa chart karena exceljs tak dukung chart), CSV (transaksi & laporan, format sama exports.py), PDF via **jspdf + jspdf-autotable**.
+- **Fitur online DIHAPUS:**
+  - Foto Nota + OCR (Tesseract) dihapus total dari `TransactionDialog.jsx` (state/fungsi/UI upload & scan) dan indikator/tombol nota di `TransactionsView.jsx`.
+  - Link "Template Excel" (buka /api/excel/list) dihapus dari `Layout.jsx` (desktop + mobile) + import BACKEND_URL.
+  - Google Fonts (Inter/Plus Jakarta Sans/JetBrains Mono via CDN) diganti font BUNDEL LOKAL `@fontsource/plus-jakarta-sans` + `@fontsource/jetbrains-mono` (diimpor di `index.js`); `@import` Google dihapus dari `index.css`.
+  - Skrip analitik Emergent (`assets.emergent.sh/scripts/emergent-main.js`) + blok PostHog (`ap.emergent.sh`) dihapus dari `public/index.html`; title -> "KasUMKM — Pembukuan UMKM".
+- **Data mulai KOSONG** (tidak ada seed demo). Default kategori dibuat otomatis saat UMKM baru ditambahkan.
+- Backend FastAPI + MongoDB masih ada di repo tapi TIDAK DIPAKAI lagi oleh aplikasi (akan dilepas saat packaging Electron).
+- Diverifikasi (Playwright manual oleh main agent): tambah UMKM -> persisten setelah reload (IndexedDB) -> buka workspace -> catat pemasukan Rp250.000 -> Saldo Rp1.250.000 (saldo awal 1.000.000 + 250.000), Uang Masuk Rp250.000, grafik tampil. Lint bersih, webpack compiled successfully.
+- Backlog: Tahap 2 = Electron wrapper + electron-builder untuk installer Windows (.exe + shortcut). Opsi: ekspor Excel dengan chart (butuh pendekatan lain karena exceljs tak dukung chart).

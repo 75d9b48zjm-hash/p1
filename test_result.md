@@ -154,3 +154,15 @@ agent_communication:
     -message: "Perbaikan CORS diterapkan. Tolong uji backend: POST /api/businesses (buat klien baru dengan body BusinessInput seperti {name, owner_name, business_type, phone, address, opening_balance}), GET /api/businesses, DELETE /api/businesses/{id}, dan POST /api/transactions. Aplikasi tanpa login — tidak perlu Authorization. Pastikan endpoint mengembalikan 200 dan data tersimpan."
     -agent: "testing"
     -message: "Backend testing completed successfully. All 7 test scenarios passed with HTTP 200 responses and correct data persistence. CORS headers are correctly configured (allow-origin: * without allow-credentials: true). The 'Network Error saat Tambah UMKM' bug is FIXED. Created test file: /app/backend_test.py for future regression testing."
+
+  - task: "PIVOT Tahap 1: Aplikasi offline 100% (client-side, IndexedDB, hapus fitur online)"
+    implemented: true
+    working: true
+    file: "frontend/src/lib/api.js, store.js, exporters.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: true
+        -agent: "main"
+        -comment: "Ubah aplikasi jadi client-side murni tanpa backend/MongoDB. Data di IndexedDB (localforage). api.js jadi router lokal meniru semua endpoint. Export Excel(exceljs)/CSV/PDF(jspdf) di browser. Hapus Foto Nota+OCR, Template Excel, Google Fonts (ganti @fontsource lokal), skrip analitik Emergent+PostHog. Mulai kosong. Diverifikasi manual via Playwright: tambah UMKM -> persisten setelah reload -> catat transaksi -> saldo/dashboard benar. Lint bersih, compiled successfully. Belum dijalankan lewat auto_frontend_testing_agent (menunggu izin user)."

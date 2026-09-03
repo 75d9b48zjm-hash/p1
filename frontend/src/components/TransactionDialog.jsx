@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Upload, Loader2, ArrowUpRight, ArrowDownRight, FileCheck2, ScanLine, Sparkles } from "lucide-react";
+import { Loader2, ArrowUpRight, ArrowDownRight, Sparkles } from "lucide-react";
 import api, { apiError } from "@/lib/api";
 import { formatThousand, digitsOnly, todayStr, PAYMENT_METHODS } from "@/lib/format";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -16,14 +16,9 @@ export const TransactionDialog = ({ open, onOpenChange, businessId, transaction,
   const editing = Boolean(transaction);
   const [type, setType] = useState(defaultType);
   const [form, setForm] = useState({ date: todayStr(), category: "", amount: "", description: "", payment_method: "Tunai" });
-  const [receiptId, setReceiptId] = useState(null);
-  const [receiptName, setReceiptName] = useState("");
   const [categories, setCategories] = useState([]);
   const [suggestion, setSuggestion] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [scanning, setScanning] = useState(false);
-  const fileRef = useRef(null);
   const suggestTimer = useRef(null);
 
   useEffect(() => {
@@ -37,13 +32,9 @@ export const TransactionDialog = ({ open, onOpenChange, businessId, transaction,
         description: transaction.description || "",
         payment_method: transaction.payment_method || "Tunai",
       });
-      setReceiptId(transaction.receipt_id || null);
-      setReceiptName(transaction.receipt_id ? "Bukti terlampir" : "");
     } else {
       setType(defaultType);
       setForm({ date: todayStr(), category: "", amount: "", description: "", payment_method: "Tunai" });
-      setReceiptId(null);
-      setReceiptName("");
       setSuggestion(null);
     }
   }, [open, transaction, defaultType]);
@@ -71,45 +62,6 @@ export const TransactionDialog = ({ open, onOpenChange, businessId, transaction,
 
   const filtered = useMemo(() => categories.filter((c) => c.type === type), [categories, type]);
 
-  const upload = async (file) => {
-    if (!file) return;
-    setUploading(true);
-    try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const { data } = await api.post("/receipts", fd, { params: { business_id: businessId } });
-      setReceiptId(data.id);
-      setReceiptName(data.filename);
-      toast.success("Bukti berhasil diunggah");
-      setUploading(false);
-      if (/\.(jpe?g|png)$/i.test(file.name)) await scanReceipt(data.id);
-    } catch (e) {
-      toast.error(apiError(e));
-      setUploading(false);
-    }
-  };
-
-  const scanReceipt = async (id) => {
-    setScanning(true);
-    try {
-      const { data } = await api.post(`/receipts/${id}/extract`);
-      if (data.found) {
-        setForm((f) => ({
-          ...f,
-          amount: data.amount ? formatThousand(String(Math.round(data.amount))) : f.amount,
-          date: data.date || f.date,
-        }));
-        const parts = [data.amount && "nominal", data.date && "tanggal"].filter(Boolean).join(" & ");
-        toast.success(`Nota terbaca! ${parts.charAt(0).toUpperCase() + parts.slice(1)} terisi otomatis. Periksa lagi ya.`);
-      } else {
-        toast.info("Nota terunggah, tapi nominal/tanggal tidak terbaca. Silakan isi manual.");
-      }
-    } catch {
-      toast.info("Nota terunggah. Baca otomatis gagal, silakan isi manual.");
-    }
-    setScanning(false);
-  };
-
   const acceptSuggestion = () => {
     if (!suggestion) return;
     setForm((f) => ({ ...f, category: suggestion }));
@@ -128,7 +80,6 @@ export const TransactionDialog = ({ open, onOpenChange, businessId, transaction,
         amount,
         description: form.description,
         business_id: businessId,
-        receipt_id: receiptId,
         category: form.category || "",
         payment_method: form.payment_method,
       };
@@ -149,7 +100,7 @@ export const TransactionDialog = ({ open, onOpenChange, businessId, transaction,
         <DialogHeader>
           <DialogTitle className="text-lg">{editing ? "Ubah Transaksi" : "Catat Transaksi"}</DialogTitle>
           <DialogDescription className="text-xs text-slate-500">
-            Isi nominal, tanggal, dan catatan. Kategori & metode opsional. Unggah foto nota agar nominal terisi otomatis.
+            Isi nominal, tanggal, dan catatan. Kategori & metode opsional.
           </DialogDescription>
         </DialogHeader>
 
@@ -246,25 +197,6 @@ export const TransactionDialog = ({ open, onOpenChange, businessId, transaction,
                 {PAYMENT_METHODS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
               </SelectContent>
             </Select>
-          </div>
-
-          <div>
-            <Label>Bukti / Nota (JPG, PNG, PDF) — opsional</Label>
-            <input ref={fileRef} type="file" accept=".jpg,.jpeg,.png,.pdf" className="hidden"
-              data-testid="receipt-file-input" onChange={(e) => upload(e.target.files?.[0])} />
-            <button
-              data-testid="upload-receipt-button"
-              onClick={() => fileRef.current?.click()}
-              disabled={uploading || scanning}
-              className="mt-1.5 w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-slate-200 text-sm font-medium text-slate-500 hover:border-emerald-300 hover:text-emerald-600 transition-colors disabled:opacity-70"
-            >
-              {uploading || scanning ? <Loader2 className="h-4 w-4 animate-spin" /> : receiptId ? <FileCheck2 className="h-4 w-4 text-emerald-600" /> : <Upload className="h-4 w-4" />}
-              {uploading ? "Mengunggah..." : scanning ? "Membaca nota..." : receiptId ? receiptName : "Unggah bukti (opsional)"}
-            </button>
-            <p className="mt-1.5 flex items-center gap-1.5 text-[11px] text-slate-400" data-testid="ocr-hint">
-              <ScanLine className="h-3.5 w-3.5 text-emerald-500" />
-              Foto Nota Pintar: nominal & tanggal terisi otomatis dari foto nota (JPG/PNG)
-            </p>
           </div>
         </div>
 

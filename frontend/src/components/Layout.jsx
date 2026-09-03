@@ -1,10 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Store, FileSpreadsheet, Menu, X, Wallet } from "lucide-react";
-import { BACKEND_URL } from "@/lib/api";
+import { Store, Menu, X, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-const EXCEL_URL = `${BACKEND_URL}/api/excel/list`;
 
 const NAV = [
   { to: "/", label: "Klien UMKM", Icon: Store },
@@ -41,16 +38,6 @@ export const Layout = ({ children, title, subtitle, action }) => {
             {label}
           </Link>
         ))}
-        <a
-          href={EXCEL_URL}
-          target="_blank"
-          rel="noreferrer"
-          data-testid="nav-template-excel"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors"
-        >
-          <FileSpreadsheet className="h-4.5 w-4.5" strokeWidth={2.1} />
-          Template Excel
-        </a>
       </nav>
       <div className="p-3 border-t border-slate-800/60">
         <div className="px-3 py-2">
@@ -102,16 +89,6 @@ export const Layout = ({ children, title, subtitle, action }) => {
             <span className="text-[10px] font-semibold">{label}</span>
           </Link>
         ))}
-        <a
-          href={EXCEL_URL}
-          target="_blank"
-          rel="noreferrer"
-          data-testid="bottomnav-template-excel"
-          className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl min-w-[60px] text-slate-400"
-        >
-          <FileSpreadsheet className="h-5 w-5" strokeWidth={2.1} />
-          <span className="text-[10px] font-semibold">Excel</span>
-        </a>
       </nav>
     </div>
   );

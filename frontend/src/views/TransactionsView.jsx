@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Search, Plus, Pencil, Trash2, Paperclip, Download, FileText, Filter, X } from "lucide-react";
-import api, { apiError, API, downloadFile } from "@/lib/api";
+import { Search, Plus, Pencil, Trash2, Download, FileText, Filter, X } from "lucide-react";
+import api, { apiError, downloadFile } from "@/lib/api";
 import { rupiah, formatDate, formatDateTime, monthRange } from "@/lib/format";
 import { TypeBadge, Amount, Loader, EmptyState } from "@/components/Bits";
 import { TransactionDialog } from "@/components/TransactionDialog";
@@ -60,8 +60,6 @@ export const TransactionsView = ({ businessId }) => {
       count: list.length,
     };
   }, [rows]);
-
-  const openReceipt = (id) => window.open(`${API}/receipts/${id}`, "_blank");
 
   const exportIt = async (format) => {
     const { start, end } = monthRange();
@@ -187,7 +185,6 @@ export const TransactionsView = ({ businessId }) => {
                       <button className="text-left font-medium text-slate-800 hover:text-emerald-600" data-testid={`detail-${t.id}`} onClick={() => setDetail(t)}>
                         {t.description || "-"}
                       </button>
-                      {t.receipt_id && <Paperclip className="inline h-3.5 w-3.5 ml-1.5 text-slate-400" />}
                     </td>
                     <td className="px-5 py-3.5 text-slate-600">{t.category}</td>
                     <td className="px-5 py-3.5"><TypeBadge type={t.type} /></td>
@@ -273,11 +270,6 @@ export const TransactionsView = ({ businessId }) => {
                   <span className="font-medium text-slate-800 text-right">{v}</span>
                 </div>
               ))}
-              {detail.receipt_id && (
-                <Button variant="outline" className="rounded-xl w-full" data-testid="view-receipt" onClick={() => openReceipt(detail.receipt_id)}>
-                  <Paperclip className="h-4 w-4 mr-1.5" /> Lihat bukti transaksi
-                </Button>
-              )}
             </div>
           )}
         </DialogContent>
