@@ -2,6 +2,10 @@
   "name": "frontend",
   "version": "0.1.0",
   "private": true,
+  "description": "KasUMKM - aplikasi pembukuan UMKM offline",
+  "author": "KasUMKM",
+  "homepage": ".",
+  "main": "electron/main.js",
   "dependencies": {
     "@fontsource/jetbrains-mono": "^5.3.0",
     "@fontsource/plus-jakarta-sans": "^5.3.0",
@@ -69,7 +73,24 @@
   "scripts": {
     "start": "craco start",
     "build": "craco build",
-    "test": "craco test"
+    "test": "craco test",
+    "electron": "electron .",
+    "dist": "craco build && electron-builder --win"
+  },
+  "build": {
+    "appId": "id.kasumkm.app",
+    "productName": "KasUMKM",
+    "files": ["build/**/*", "electron/**/*"],
+    "directories": { "output": "dist" },
+    "win": { "target": ["nsis", "portable"] },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "KasUMKM"
+    }
   },
   "browserslist": {
     "production": [
@@ -91,6 +112,8 @@
     "@types/lodash": "4.17.24",
     "autoprefixer": "10.4.20",
     "dotenv": "16.4.5",
+    "electron": "^31.3.1",
+    "electron-builder": "^24.13.3",
     "eslint": "9.23.0",
     "eslint-plugin-import": "2.31.0",
     "eslint-plugin-jsx-a11y": "6.10.2",

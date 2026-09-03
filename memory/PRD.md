@@ -128,3 +128,11 @@ Tenant isolation at backend, review workflow (pending → approved / needs_corre
 - `api.js` downloadFile: rute baru `/businesses/{id}/report-pdf` (hitung report+monthly+transaksi periode berjalan) -> exportMonthlyReportPdf.
 - UI: tombol "Laporan PDF" (emerald, utama) di header workspace `AdminBusinessDetail.jsx` (data-testid=export-pdf-report) dan quick-action dashboard `DashboardView.jsx` (data-testid=quick-export-pdf). Export Excel/CSV/PDF-per-jenis lama TETAP ada.
 - Diverifikasi (Playwright): buat UMKM + 3 transaksi -> klik Laporan PDF (dashboard & header) -> "Laporan PDF berhasil diunduh", tanpa error. Lint bersih, compiled successfully.
+
+## Implemented (2026-07, Tahap 2: Paket Aplikasi Windows / Electron)
+- User minta bisa di-download & dipakai di komputer Windows + langkah-langkahnya.
+- App disiapkan agar bisa dibungkus & jalan dari file lokal: `frontend/src/App.js` BrowserRouter -> **HashRouter**; `frontend/package.json` `homepage:"."` (aset relatif), `main:"electron/main.js"`.
+- **Electron**: `frontend/electron/main.js` (BrowserWindow loadFile build/index.html, contextIsolation, autoHideMenuBar, link http dibuka di browser default). `package.json`: script `electron` & `dist` (`craco build && electron-builder --win`), devDeps `electron ^31.3.1` + `electron-builder ^24.13.3`, config electron-builder (appId id.kasumkm.app, productName KasUMKM, target win nsis+portable, desktop+startmenu shortcut). `.gitignore` tambah `/dist`.
+- Verifikasi: `yarn build` sukses (aset `./` relatif, 0 URL eksternal, font woff2 ter-bundle). Playwright memuat `file:///app/frontend/build/index.html` -> app render, tambah UMKM sukses, **IndexedDB bekerja di file://** (data persisten) -> konfirmasi paket Electron akan berfungsi. Preview (dev) tetap jalan dgn HashRouter.
+- Panduan: `/app/CARA-PAKAI-DI-KOMPUTER.md` (Bahasa Indonesia): Save to GitHub -> Download ZIP -> install Node.js -> `cd frontend` -> `npm i -g yarn` -> `yarn install` -> `yarn dist` -> hasil di `frontend/dist` (installer .exe + portable, bikin shortcut). Perlu internet hanya saat build; setelah jadi 100% offline.
+- Delivery code dari Emergent = fitur "Save to GitHub" (butuh langganan berbayar), tidak ada download langsung (info dari support_agent).
